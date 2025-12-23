@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyDescriptionAttribute(("Core abstractions for Sitas.Edge - A multi-protocol message bus library with Buil" +
     "der, Strategy, and Attribute-Based Discovery patterns."))]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a5695c87e9b0cdf704d77007c8c85772ff8f9b9b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8750089391a537b0fc6af9fd5523a5f75c462bf2")]
 [assembly: System.Reflection.AssemblyProductAttribute("Sitas.Edge.Core")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Sitas.Edge.Core")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

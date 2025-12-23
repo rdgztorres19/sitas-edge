@@ -1360,6 +1360,118 @@ public class MachineDataHandler : IEventHandler<object>
 
 ---
 
+### Loading Handlers from Multiple Assemblies
+
+Sitas.Edge can discover and load handlers from the current assembly (entry assembly) or from different assemblies, including external DLLs loaded at runtime.
+
+#### Loading from Entry Assembly
+
+The simplest approach is to load handlers from the entry assembly (your main application):
+
+```csharp
+var sitasEdge = SitasEdgeBuilder.Create()
+    .AddMqttConnection(mqtt => mqtt
+        .WithConnectionName("mqtt")
+        .WithBroker("broker.hivemq.com", 1883)
+        .WithHandlersFromEntryAssembly())  // Discovers handlers in the main assembly
+    .Build();
+```
+
+#### Loading from Multiple Assemblies
+
+You can load handlers from multiple assemblies, including the entry assembly and external assemblies:
+
+```csharp
+using System.Reflection;
+
+// Load handlers from entry assembly and an external assembly
+var sitasEdge = SitasEdgeBuilder.Create()
+    .AddMqttConnection(mqtt => mqtt
+        .WithConnectionName("mqtt")
+        .WithBroker("broker.hivemq.com", 1883)
+        .WithHandlersFromAssemblies(
+            Assembly.GetEntryAssembly()!,           // Handlers from main application
+            typeof(ExternalHandlers.SomeHandler).Assembly  // Handlers from external assembly
+        ))
+    .Build();
+```
+
+#### Loading from External DLL at Runtime
+
+You can load handlers from an external DLL compiled separately, avoiding circular dependencies:
+
+```csharp
+using System.Reflection;
+
+// Load external handlers assembly from DLL path
+var externalHandlersPath = Path.Combine(AppContext.BaseDirectory, "ExternalHandlers.dll");
+var externalHandlersAssembly = Assembly.LoadFrom(externalHandlersPath);
+
+var sitasEdge = SitasEdgeBuilder.Create()
+    .AddMqttConnection(mqtt => mqtt
+        .WithConnectionName("mqtt")
+        .WithBroker("broker.hivemq.com", 1883)
+        .WithHandlersFromAssemblies(
+            Assembly.GetEntryAssembly()!,  // Handlers from current assembly
+            externalHandlersAssembly       // Handlers from external DLL
+        ))
+    .Build();
+```
+
+**Complete Example: Loading External Handlers**
+
+```csharp
+using System.Reflection;
+
+// Load external handlers assembly (if available)
+var externalHandlersPath = Path.Combine(AppContext.BaseDirectory, "ExternalHandlers.dll");
+Assembly? externalHandlersAssembly = null;
+
+if (File.Exists(externalHandlersPath))
+{
+    externalHandlersAssembly = Assembly.LoadFrom(externalHandlersPath);
+    Console.WriteLine($"✅ Loaded ExternalHandlers assembly from: {externalHandlersPath}");
+}
+else
+{
+    Console.WriteLine($"⚠️  ExternalHandlers.dll not found at: {externalHandlersPath}");
+}
+
+var sitasEdge = SitasEdgeBuilder.Create()
+    .AddMqttConnection(mqtt =>
+    {
+        mqtt.WithConnectionName("mqtt")
+            .WithBroker("broker.hivemq.com", 1883)
+            .WithHandlersFromEntryAssembly();  // Always load from entry assembly
+        
+        // Add external handlers if available
+        if (externalHandlersAssembly != null)
+        {
+            mqtt.WithHandlersFromAssemblies(externalHandlersAssembly);
+        }
+    })
+    .Build();
+```
+
+**Benefits:**
+- ✅ **Modular Architecture**: Separate handlers into different projects/assemblies
+- ✅ **Avoid Circular Dependencies**: Load external handlers without project references
+- ✅ **Plugin System**: Load handlers from plugins or extensions at runtime
+- ✅ **Flexible Deployment**: Distribute handlers as separate DLLs
+
+**Method Signatures:**
+- `WithHandlersFromEntryAssembly()` → `IMqttClientBuilder` / `IEdgePlcDriverBuilder`
+  - **Input**: None
+  - **Output**: Builder instance for chaining
+  - **Behavior**: Discovers handlers in `Assembly.GetEntryAssembly()`
+
+- `WithHandlersFromAssemblies(params Assembly[] assemblies)` → `IMqttClientBuilder` / `IEdgePlcDriverBuilder`
+  - **Input**: `assemblies` - Array of `Assembly` objects to scan
+  - **Output**: Builder instance for chaining
+  - **Behavior**: Discovers handlers in all specified assemblies
+
+---
+
 ### Disabling Handlers
 
 You can temporarily disable handlers without removing them from your codebase:

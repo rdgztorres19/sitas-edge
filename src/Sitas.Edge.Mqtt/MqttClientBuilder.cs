@@ -150,6 +150,12 @@ public sealed class MqttClientBuilder : IMqttClientBuilder
         logger?.LogInformation("📋 Discovered {RelevantCount} handler(s) for connection '{ConnectionName}'", 
             relevantRegistrations.Count, _options.ConnectionName);
         
+        // Log details about discovered handlers for debugging
+        // foreach (var reg in relevantRegistrations)
+        // {
+        //     Console.WriteLine($"  🔍 Handler: {reg.HandlerType.FullName} (Assembly: {reg.HandlerType.Assembly.GetName().Name}, Topic: {reg.Topic})");
+        // }
+        
         _handlerRegistrations.AddRange(relevantRegistrations);
         return this;
     }
