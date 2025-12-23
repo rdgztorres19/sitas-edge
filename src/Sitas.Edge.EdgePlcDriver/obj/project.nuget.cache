@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "dgSpecHash": "nG2SaaCiJy8=",
+  "success": true,
+  "projectFilePath": "/Users/rdgztorres19/Documents/Projects/MyWebApi/Sitas.Edge/src/Sitas.Edge.EdgePlcDriver/Sitas.Edge.EdgePlcDriver.csproj",
+  "expectedPackageFiles": [
+    "/Users/rdgztorres19/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/8.0.0/microsoft.extensions.dependencyinjection.abstractions.8.0.0.nupkg.sha512",
+    "/Users/rdgztorres19/.nuget/packages/microsoft.extensions.logging.abstractions/8.0.0/microsoft.extensions.logging.abstractions.8.0.0.nupkg.sha512",
+    "/Users/rdgztorres19/.nuget/packages/system.text.json/8.0.5/system.text.json.8.0.5.nupkg.sha512",
+    "/Users/rdgztorres19/.nuget/packages/microsoft.netcore.app.ref/8.0.21/microsoft.netcore.app.ref.8.0.21.nupkg.sha512",
+    "/Users/rdgztorres19/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.21/microsoft.aspnetcore.app.ref.8.0.21.nupkg.sha512"
+  ],
+  "logs": []
+}

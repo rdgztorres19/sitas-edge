@@ -1,0 +1,1310 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Sitas.Edge.Core</name>
+    </assembly>
+    <members>
+        <member name="T:Sitas.Edge.Core.Abstractions.IHandlerActivator">
+            <summary>
+            Activates (creates) handler instances from a dependency injection container.
+            Implement this interface to integrate with any DI container.
+            </summary>
+            <remarks>
+            This is the primary extension point for DI integration.
+            Each DI container should provide its own implementation.
+            </remarks>
+        </member>
+        <member name="M:Sitas.Edge.Core.Abstractions.IHandlerActivator.CreateInstance(System.Type)">
+            <summary>
+            Creates an instance of the specified handler type.
+            </summary>
+            <param name="handlerType">The type of handler to create.</param>
+            <returns>The activated handler instance.</returns>
+        </member>
+        <member name="M:Sitas.Edge.Core.Abstractions.IHandlerActivator.CreateInstance``1">
+            <summary>
+            Creates an instance of the specified handler type.
+            </summary>
+            <typeparam name="THandler">The type of handler to create.</typeparam>
+            <returns>The activated handler instance.</returns>
+        </member>
+        <member name="M:Sitas.Edge.Core.Abstractions.IHandlerActivator.CreateScopedInstance(System.Type)">
+            <summary>
+            Creates a scoped instance of the specified handler type.
+            The returned scope should be disposed after the handler completes.
+            </summary>
+            <param name="handlerType">The type of handler to create.</param>
+            <returns>A scoped handler that should be disposed after use.</returns>
+        </member>
+        <member name="T:Sitas.Edge.Core.Abstractions.IScopedHandler">
+            <summary>
+            Represents a handler instance with an associated scope that should be disposed.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Abstractions.IScopedHandler.Handler">
+            <summary>
+            Gets the handler instance.
+            </summary>
+        </member>
+        <member name="T:Sitas.Edge.Core.Abstractions.IHandlerResolver">
+            <summary>
+            Resolves handler instances from a dependency injection container or factory.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Abstractions.IHandlerResolver.Resolve(System.Type)">
+            <summary>
+            Resolves a handler instance of the specified type.
+            </summary>
+            <param name="handlerType">The type of handler to resolve.</param>
+            <returns>The resolved handler instance.</returns>
+        </member>
+        <member name="M:Sitas.Edge.Core.Abstractions.IHandlerResolver.Resolve``1">
+            <summary>
+            Resolves a handler instance of the specified type.
+            </summary>
+            <typeparam name="THandler">The type of handler to resolve.</typeparam>
+            <returns>The resolved handler instance.</returns>
+        </member>
+        <member name="M:Sitas.Edge.Core.Abstractions.IHandlerResolver.ResolveScoped(System.Type)">
+            <summary>
+            Resolves a scoped handler instance. The scope should be disposed after use.
+            </summary>
+            <param name="handlerType">The type of handler to resolve.</param>
+            <returns>A scoped handler that should be disposed after use.</returns>
+        </member>
+        <member name="T:Sitas.Edge.Core.Abstractions.IMessageContext">
+            <summary>
+            Provides context information about a received message, including the ability to publish responses.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Abstractions.IMessageContext.Topic">
+            <summary>
+            Gets the topic or channel from which the message was received.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Abstractions.IMessageContext.CorrelationId">
+            <summary>
+            Gets the correlation identifier for message tracking.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Abstractions.IMessageContext.ReceivedAt">
+            <summary>
+            Gets the timestamp when the message was received.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Abstractions.IMessageContext.RawPayload">
+            <summary>
+            Gets the raw payload bytes.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Abstractions.IMessageContext.Publisher">
+            <summary>
+            Gets the publisher interface for sending response messages.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Abstractions.IMessageContext.Metadata">
+            <summary>
+            Gets additional metadata associated with the message.
+            </summary>
+        </member>
+        <member name="T:Sitas.Edge.Core.Abstractions.IMessageContext`1">
+            <summary>
+            Provides strongly-typed context for received messages.
+            </summary>
+            <typeparam name="TMessage">The type of the deserialized message.</typeparam>
+        </member>
+        <member name="P:Sitas.Edge.Core.Abstractions.IMessageContext`1.Message">
+            <summary>
+            Gets the deserialized message payload.
+            </summary>
+        </member>
+        <member name="T:Sitas.Edge.Core.Abstractions.IMessageSubscriptionHandler`1">
+            <summary>
+            Defines a handler for processing subscription-based messages (polling or push-based).
+            Handlers are discovered automatically via reflection when decorated with subscription attributes
+            like [AsCommSubscribe] or [MqttSubscribe].
+            </summary>
+            <typeparam name="TMessage">The type of message this handler processes.</typeparam>
+            <remarks>
+            For on-demand events (non-subscription), use the Event Mediator pattern
+            (Conduit.Core.Events.IEventMediator + an IEventHandler&lt;TEvent&gt; implementation).
+            </remarks>
+        </member>
+        <member name="M:Sitas.Edge.Core.Abstractions.IMessageSubscriptionHandler`1.HandleAsync(`0,Sitas.Edge.Core.Abstractions.IMessageContext,System.Threading.CancellationToken)">
+            <summary>
+            Handles an incoming message with full context including the ability to publish responses.
+            </summary>
+            <param name="message">The deserialized message payload.</param>
+            <param name="context">The message context containing metadata and publisher.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>A task representing the asynchronous operation.</returns>
+        </member>
+        <member name="T:Sitas.Edge.Core.Abstractions.IMessageHandler`1">
+            <summary>
+            Alias for <see cref="T:Sitas.Edge.Core.Abstractions.IMessageSubscriptionHandler`1"/> for backward compatibility.
+            Use IMessageSubscriptionHandler for new code.
+            </summary>
+            <typeparam name="TMessage">The type of message this handler processes.</typeparam>
+        </member>
+        <member name="T:Sitas.Edge.Core.Abstractions.IRawMessageHandler">
+            <summary>
+            Marker interface for handlers that don't require a specific message type.
+            Receives raw message data for custom deserialization scenarios.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Abstractions.IRawMessageHandler.HandleAsync(System.ReadOnlyMemory{System.Byte},Sitas.Edge.Core.Abstractions.IMessageContext,System.Threading.CancellationToken)">
+            <summary>
+            Handles raw message bytes.
+            </summary>
+            <param name="payload">The raw message payload.</param>
+            <param name="context">The message context.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>A task representing the asynchronous operation.</returns>
+        </member>
+        <member name="T:Sitas.Edge.Core.Abstractions.IMessagePublisher">
+            <summary>
+            Provides functionality to publish messages to a service bus.
+            Can be injected into handlers or used standalone for publishing outside of handlers.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Abstractions.IMessagePublisher.PublishAsync``1(System.String,``0,Sitas.Edge.Core.Enums.QualityOfService,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+            Publishes a message to the specified topic.
+            </summary>
+            <typeparam name="TMessage">The type of message to publish.</typeparam>
+            <param name="topic">The topic or channel to publish to.</param>
+            <param name="message">The message to publish.</param>
+            <param name="qos">The quality of service level for delivery.</param>
+            <param name="retain">Whether the message should be retained by the broker.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>A task representing the asynchronous publish operation.</returns>
+        </member>
+        <member name="M:Sitas.Edge.Core.Abstractions.IMessagePublisher.PublishAsync(System.String,System.ReadOnlyMemory{System.Byte},Sitas.Edge.Core.Enums.QualityOfService,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+            Publishes raw bytes to the specified topic.
+            </summary>
+            <param name="topic">The topic or channel to publish to.</param>
+            <param name="payload">The raw message payload.</param>
+            <param name="qos">The quality of service level for delivery.</param>
+            <param name="retain">Whether the message should be retained by the broker.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>A task representing the asynchronous publish operation.</returns>
+        </member>
+        <member name="T:Sitas.Edge.Core.Abstractions.IMessageSerializer">
+            <summary>
+            Provides message serialization and deserialization capabilities.
+            Implement this interface to customize how messages are converted to/from bytes.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Abstractions.IMessageSerializer.Serialize``1(``0)">
+            <summary>
+            Serializes a message to bytes.
+            </summary>
+            <typeparam name="TMessage">The type of message to serialize.</typeparam>
+            <param name="message">The message to serialize.</param>
+            <returns>The serialized bytes.</returns>
+        </member>
+        <member name="M:Sitas.Edge.Core.Abstractions.IMessageSerializer.Deserialize``1(System.ReadOnlyMemory{System.Byte})">
+            <summary>
+            Deserializes bytes to a message.
+            </summary>
+            <typeparam name="TMessage">The type of message to deserialize to.</typeparam>
+            <param name="data">The bytes to deserialize.</param>
+            <returns>The deserialized message.</returns>
+        </member>
+        <member name="M:Sitas.Edge.Core.Abstractions.IMessageSerializer.Deserialize(System.ReadOnlyMemory{System.Byte},System.Type)">
+            <summary>
+            Deserializes bytes to a message of the specified type.
+            </summary>
+            <param name="data">The bytes to deserialize.</param>
+            <param name="type">The target type.</param>
+            <returns>The deserialized message.</returns>
+        </member>
+        <member name="T:Sitas.Edge.Core.Abstractions.IServiceBusBuilder`2">
+            <summary>
+            Base interface for all service bus builders.
+            Follows the Builder pattern for fluent configuration of service bus connections.
+            </summary>
+            <typeparam name="TBuilder">The concrete builder type for fluent chaining.</typeparam>
+            <typeparam name="TConnection">The connection type that will be built.</typeparam>
+        </member>
+        <member name="M:Sitas.Edge.Core.Abstractions.IServiceBusBuilder`2.Build">
+            <summary>
+            Builds the configured connection instance.
+            </summary>
+            <returns>A configured but not yet connected service bus connection.</returns>
+        </member>
+        <member name="T:Sitas.Edge.Core.Abstractions.IServiceBusConnection">
+            <summary>
+            Represents an active connection to a service bus.
+            Manages the connection lifecycle and provides publishing capabilities.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Abstractions.IServiceBusConnection.ConnectionName">
+            <summary>
+            Gets the logical name of this connection (e.g., "mqtt", "plc1").
+            This matches the name used in subscription attributes and event tag reads.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Abstractions.IServiceBusConnection.ConnectionId">
+            <summary>
+            Gets the unique identifier for this connection.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Abstractions.IServiceBusConnection.State">
+            <summary>
+            Gets the current state of the connection.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Abstractions.IServiceBusConnection.Publisher">
+            <summary>
+            Gets the publisher for sending messages through this connection.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Abstractions.IServiceBusConnection.IsConnected">
+            <summary>
+            Gets a value indicating whether the connection is currently connected.
+            </summary>
+        </member>
+        <member name="E:Sitas.Edge.Core.Abstractions.IServiceBusConnection.StateChanged">
+            <summary>
+            Occurs when the connection state changes.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Abstractions.IServiceBusConnection.ConnectAsync(System.Threading.CancellationToken)">
+            <summary>
+            Establishes the connection to the service bus and starts listening for messages.
+            </summary>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>A task representing the asynchronous connect operation.</returns>
+        </member>
+        <member name="M:Sitas.Edge.Core.Abstractions.IServiceBusConnection.DisconnectAsync(System.Threading.CancellationToken)">
+            <summary>
+            Disconnects from the service bus gracefully.
+            </summary>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>A task representing the asynchronous disconnect operation.</returns>
+        </member>
+        <member name="T:Sitas.Edge.Core.Abstractions.ConnectionStateChangedEventArgs">
+            <summary>
+            Event arguments for connection state changes.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Abstractions.ConnectionStateChangedEventArgs.PreviousState">
+            <summary>
+            Gets the previous connection state.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Abstractions.ConnectionStateChangedEventArgs.CurrentState">
+            <summary>
+            Gets the current connection state.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Abstractions.ConnectionStateChangedEventArgs.Exception">
+            <summary>
+            Gets the exception that caused the state change, if any.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Abstractions.ConnectionStateChangedEventArgs.#ctor(Sitas.Edge.Core.Enums.ConnectionState,Sitas.Edge.Core.Enums.ConnectionState,System.Exception)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Sitas.Edge.Core.Abstractions.ConnectionStateChangedEventArgs"/> class.
+            </summary>
+        </member>
+        <member name="T:Sitas.Edge.Core.Abstractions.ISitasEdge">
+            <summary>
+            Represents a configured Nexus Service Bus instance with one or more connections.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Abstractions.ISitasEdge.GetConnection``1">
+            <summary>
+            Gets a connection of the specified type.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Abstractions.ISitasEdge.Connections">
+            <summary>
+            Gets all configured connections.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Abstractions.ISitasEdge.Activator">
+            <summary>
+            Gets the handler activator used for dependency injection.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Abstractions.ISitasEdge.ConnectAllAsync(System.Threading.CancellationToken)">
+            <summary>
+            Connects all configured connections.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Abstractions.ISitasEdge.DisconnectAllAsync(System.Threading.CancellationToken)">
+            <summary>
+            Disconnects all configured connections.
+            </summary>
+        </member>
+        <member name="T:Sitas.Edge.Core.Activators.FuncActivator">
+            <summary>
+            Handler activator that uses a delegate function.
+            Provides flexibility for any DI container integration.
+            </summary>
+            <remarks>
+            This activator automatically creates handler instances even if they are not
+            explicitly registered in the DI container. It resolves constructor dependencies
+            using the provided factory function.
+            </remarks>
+            <example>
+            // Autofac - handlers are created automatically, no registration needed
+            var activator = new FuncActivator(type => container.Resolve(type));
+            
+            // SimpleInjector
+            var activator = new FuncActivator(type => container.GetInstance(type));
+            
+            // Ninject
+            var activator = new FuncActivator(type => kernel.Get(type));
+            </example>
+        </member>
+        <member name="M:Sitas.Edge.Core.Activators.FuncActivator.#ctor(System.Func{System.Type,System.Object})">
+            <summary>
+            Creates a new activator using the specified factory delegate.
+            </summary>
+            <param name="factory">A function that resolves service instances by type.</param>
+        </member>
+        <member name="M:Sitas.Edge.Core.Activators.FuncActivator.SetConduitInstance(Sitas.Edge.Core.Abstractions.ISitasEdge)">
+            <summary>
+            Sets the Conduit instance for auto-injection.
+            Called internally by SitasEdgeBuilder after creating the Conduit.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Activators.FuncActivator.CreateInstance(System.Type)">
+            <inheritdoc />
+        </member>
+        <member name="M:Sitas.Edge.Core.Activators.FuncActivator.CreateInstanceWithDependencies(System.Type)">
+            <summary>
+            Creates an instance of the handler type, resolving all constructor dependencies.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Activators.FuncActivator.CreateInstance``1">
+            <inheritdoc />
+        </member>
+        <member name="M:Sitas.Edge.Core.Activators.FuncActivator.CreateScopedInstance(System.Type)">
+            <inheritdoc />
+        </member>
+        <member name="T:Sitas.Edge.Core.Activators.HandlerActivatorAdapter">
+            <summary>
+            Adapts an IHandlerActivator to work as an IHandlerResolver.
+            This provides backwards compatibility with existing code.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Activators.HandlerActivatorAdapter.#ctor(Sitas.Edge.Core.Abstractions.IHandlerActivator)">
+            <summary>
+            Creates a new adapter wrapping the specified activator.
+            </summary>
+            <param name="activator">The activator to wrap.</param>
+        </member>
+        <member name="M:Sitas.Edge.Core.Activators.HandlerActivatorAdapter.Resolve(System.Type)">
+            <inheritdoc />
+        </member>
+        <member name="M:Sitas.Edge.Core.Activators.HandlerActivatorAdapter.Resolve``1">
+            <inheritdoc />
+        </member>
+        <member name="M:Sitas.Edge.Core.Activators.HandlerActivatorAdapter.ResolveScoped(System.Type)">
+            <inheritdoc />
+        </member>
+        <member name="T:Sitas.Edge.Core.Activators.ServiceProviderActivator">
+            <summary>
+            Handler activator that uses any IServiceProvider implementation.
+            Works with Microsoft.Extensions.DependencyInjection, Autofac, SimpleInjector, 
+            Ninject, Lamar, DryIoc, or any container that provides IServiceProvider.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Activators.ServiceProviderActivator.#ctor(System.IServiceProvider)">
+            <summary>
+            Creates a new activator using the specified service provider.
+            </summary>
+            <param name="serviceProvider">The service provider to use for resolving handlers.</param>
+        </member>
+        <member name="M:Sitas.Edge.Core.Activators.ServiceProviderActivator.CreateInstance(System.Type)">
+            <inheritdoc />
+        </member>
+        <member name="M:Sitas.Edge.Core.Activators.ServiceProviderActivator.CreateInstance``1">
+            <inheritdoc />
+        </member>
+        <member name="M:Sitas.Edge.Core.Activators.ServiceProviderActivator.CreateScopedInstance(System.Type)">
+            <inheritdoc />
+        </member>
+        <member name="T:Sitas.Edge.Core.Attributes.DisableHandlerAttribute">
+            <summary>
+            When applied to a message handler, prevents it from being discovered and registered
+            during the automatic handler discovery process.
+            </summary>
+            <remarks>
+            This attribute is useful for temporarily disabling handlers during development
+            or for conditionally excluding handlers without removing them from the codebase.
+            </remarks>
+            <example>
+            <code>
+            [DisableHandler]
+            [MqttSubscribe("mqtt", "my/topic")]
+            public class MyTemporarilyDisabledHandler : IMessageSubscriptionHandler&lt;MyMessage&gt;
+            {
+                // Handler implementation
+            }
+            </code>
+            </example>
+        </member>
+        <member name="T:Sitas.Edge.Core.Attributes.SubscribeAttribute">
+            <summary>
+            Base attribute for marking message handlers with subscription information.
+            Protocol-specific attributes should inherit from this class.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Attributes.SubscribeAttribute.ConnectionName">
+            <summary>
+            Gets the name of the connection this subscription belongs to.
+            Allows handlers to target specific connections when multiple are configured.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Attributes.SubscribeAttribute.Topic">
+            <summary>
+            Gets the topic pattern to subscribe to.
+            Supports wildcards depending on the protocol (e.g., MQTT uses + and #).
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Attributes.SubscribeAttribute.QualityOfService">
+            <summary>
+            Gets the quality of service level for the subscription.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Attributes.SubscribeAttribute.#ctor(System.String,System.String,Sitas.Edge.Core.Enums.QualityOfService)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Sitas.Edge.Core.Attributes.SubscribeAttribute"/> class.
+            </summary>
+            <param name="connectionName">The connection name this subscription targets.</param>
+            <param name="topic">The topic pattern to subscribe to.</param>
+            <param name="qos">The quality of service level.</param>
+        </member>
+        <member name="T:Sitas.Edge.Core.Discovery.HandlerDiscoveryService">
+            <summary>
+            Discovers message handlers using reflection by scanning assemblies for types
+            decorated with subscription attributes.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Discovery.HandlerDiscoveryService.DiscoverHandlers(System.Reflection.Assembly[])">
+            <summary>
+            Discovers all handlers in the specified assemblies.
+            </summary>
+            <param name="assemblies">The assemblies to scan.</param>
+            <returns>A collection of discovered handler registrations.</returns>
+        </member>
+        <member name="M:Sitas.Edge.Core.Discovery.HandlerDiscoveryService.DiscoverHandlersFromCallingAssembly">
+            <summary>
+            Discovers handlers in the calling assembly.
+            </summary>
+            <returns>A collection of discovered handler registrations.</returns>
+        </member>
+        <member name="M:Sitas.Edge.Core.Discovery.HandlerDiscoveryService.DiscoverHandlersFromEntryAssembly">
+            <summary>
+            Discovers handlers in the entry assembly.
+            </summary>
+            <returns>A collection of discovered handler registrations.</returns>
+        </member>
+        <member name="T:Sitas.Edge.Core.Discovery.HandlerRegistration">
+            <summary>
+            Represents a discovered handler registration with its subscription metadata.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Discovery.HandlerRegistration.HandlerType">
+            <summary>
+            Gets the handler type that was discovered.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Discovery.HandlerRegistration.MessageType">
+            <summary>
+            Gets the message type the handler processes.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Discovery.HandlerRegistration.ConnectionName">
+            <summary>
+            Gets the connection name this handler targets.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Discovery.HandlerRegistration.Topic">
+            <summary>
+            Gets the topic pattern the handler subscribes to.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Discovery.HandlerRegistration.QualityOfService">
+            <summary>
+            Gets the quality of service level for the subscription.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Discovery.HandlerRegistration.Attribute">
+            <summary>
+            Gets the subscribe attribute that defined this registration.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Discovery.HandlerRegistration.#ctor(System.Type,System.Type,System.String,System.String,Sitas.Edge.Core.Enums.QualityOfService,Sitas.Edge.Core.Attributes.SubscribeAttribute)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Sitas.Edge.Core.Discovery.HandlerRegistration"/> class.
+            </summary>
+        </member>
+        <member name="T:Sitas.Edge.Core.Enums.ConnectionState">
+            <summary>
+            Represents the current state of a service bus connection.
+            </summary>
+        </member>
+        <member name="F:Sitas.Edge.Core.Enums.ConnectionState.Disconnected">
+            <summary>
+            The connection has been created but not yet connected.
+            </summary>
+        </member>
+        <member name="F:Sitas.Edge.Core.Enums.ConnectionState.Connecting">
+            <summary>
+            The connection is currently establishing.
+            </summary>
+        </member>
+        <member name="F:Sitas.Edge.Core.Enums.ConnectionState.Connected">
+            <summary>
+            The connection is established and ready.
+            </summary>
+        </member>
+        <member name="F:Sitas.Edge.Core.Enums.ConnectionState.Disconnecting">
+            <summary>
+            The connection is in the process of disconnecting.
+            </summary>
+        </member>
+        <member name="F:Sitas.Edge.Core.Enums.ConnectionState.Faulted">
+            <summary>
+            The connection encountered an error.
+            </summary>
+        </member>
+        <member name="F:Sitas.Edge.Core.Enums.ConnectionState.Reconnecting">
+            <summary>
+            The connection is attempting to reconnect.
+            </summary>
+        </member>
+        <member name="T:Sitas.Edge.Core.Enums.QualityOfService">
+            <summary>
+            Defines the quality of service levels for message delivery.
+            Aligned with MQTT QoS levels but abstracted for multi-protocol support.
+            </summary>
+        </member>
+        <member name="F:Sitas.Edge.Core.Enums.QualityOfService.AtMostOnce">
+            <summary>
+            At most once delivery. Message may be lost. Fire and forget.
+            MQTT QoS 0 equivalent.
+            </summary>
+        </member>
+        <member name="F:Sitas.Edge.Core.Enums.QualityOfService.AtLeastOnce">
+            <summary>
+            At least once delivery. Message is guaranteed to arrive but may be duplicated.
+            MQTT QoS 1 equivalent.
+            </summary>
+        </member>
+        <member name="F:Sitas.Edge.Core.Enums.QualityOfService.ExactlyOnce">
+            <summary>
+            Exactly once delivery. Message is guaranteed to arrive exactly once.
+            MQTT QoS 2 equivalent.
+            </summary>
+        </member>
+        <member name="T:Sitas.Edge.Core.Events.Attributes.EventAttribute">
+            <summary>
+            Marks a class as an event handler for a specific event name.
+            The handler will be invoked when EventMediator.EmitAsync() is called with the matching event name.
+            </summary>
+            <example>
+            <code>
+            [Event("GetMachineStatus")]
+            public class GetMachineStatusHandler : IEventHandler&lt;MachineRequest&gt;
+            {
+                public Task HandleAsync(MachineRequest request, TagReadResults tags, IEventContext context, CancellationToken ct)
+                {
+                    // Handle the event
+                }
+            }
+            </code>
+            </example>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.Attributes.EventAttribute.EventName">
+            <summary>
+            Gets the name of the event this handler responds to.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.Attributes.EventAttribute.Priority">
+            <summary>
+            Gets or sets the priority of this handler. Higher priority handlers execute first.
+            Default is 0.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.Attributes.EventAttribute.FireAndForget">
+            <summary>
+            Gets or sets whether this handler should be executed asynchronously without waiting.
+            Default is false (wait for completion).
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.Attributes.EventAttribute.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Sitas.Edge.Core.Events.Attributes.EventAttribute"/> class.
+            </summary>
+            <param name="eventName">The name of the event this handler responds to.</param>
+        </member>
+        <member name="T:Sitas.Edge.Core.Events.Attributes.TagReadAttribute">
+            <summary>
+            Base attribute for specifying tags to read when an event is triggered.
+            Protocol-specific attributes should inherit from this class.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.Attributes.TagReadAttribute.ConnectionName">
+            <summary>
+            Gets the connection name for reading this tag.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.Attributes.TagReadAttribute.TagName">
+            <summary>
+            Gets the name of the tag to read.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.Attributes.TagReadAttribute.ValueType">
+            <summary>
+            Gets or sets the expected type of the tag value.
+            If not specified, the type will be inferred.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.Attributes.TagReadAttribute.Alias">
+            <summary>
+            Gets or sets an alias for this tag in the TagReadResults.
+            If not specified, the TagName is used.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.Attributes.TagReadAttribute.ContinueOnFailure">
+            <summary>
+            Gets or sets whether to continue processing if this tag read fails.
+            Default is true (continue on failure).
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.Attributes.TagReadAttribute.#ctor(System.String,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Sitas.Edge.Core.Events.Attributes.TagReadAttribute"/> class.
+            </summary>
+            <param name="connectionName">The connection name for reading this tag.</param>
+            <param name="tagName">The name of the tag to read.</param>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.Attributes.TagReadAttribute.ResultKey">
+            <summary>
+            Gets the key to use in TagReadResults (Alias if specified, otherwise TagName).
+            </summary>
+        </member>
+        <member name="T:Sitas.Edge.Core.Events.EventMediator">
+            <summary>
+            Default implementation of <see cref="T:Sitas.Edge.Core.Events.IEventMediator"/>.
+            Discovers and invokes event handlers based on [Event] attributes.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.EventMediator.Global">
+            <summary>
+            Gets the global EventMediator instance (initialized automatically when SitasEdgeBuilder.Build() is called).
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.EventMediator.Emit(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Static convenience: emits an event using the global mediator.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.EventMediator.Emit``1(System.String,``0,System.Threading.CancellationToken)">
+            <summary>
+            Static convenience: emits an event using the global mediator.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.EventMediator.Emit``2(System.String,``0,System.Threading.CancellationToken)">
+            <summary>
+            Static convenience: emits an event and returns a result using the global mediator.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.EventMediator.#ctor(Sitas.Edge.Core.Abstractions.ISitasEdge)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Sitas.Edge.Core.Events.EventMediator"/> class.
+            This uses the Conduit activator for handler creation (DI-friendly) and does not require
+            registering EventMediator in any DI container.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.EventMediator.RegisterHandlersFromAssemblies(System.Reflection.Assembly[])">
+            <summary>
+            Registers handlers from the specified assemblies.
+            </summary>
+            <param name="assemblies">The assemblies to scan for handlers.</param>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.EventMediator.RegisterHandlersFromAssembly(System.Reflection.Assembly)">
+            <summary>
+            Registers handlers from a single assembly.
+            </summary>
+            <param name="assembly">The assembly to scan.</param>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.EventMediator.RegisterHandler(System.Type)">
+            <summary>
+            Registers a single handler type.
+            </summary>
+            <param name="handlerType">The type of the handler to register.</param>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.EventMediator.EmitAsync(System.String,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.EventMediator.EmitAsync``1(System.String,``0,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.EventMediator.EmitAsync``2(System.String,``0,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.EventMediator.EmitToAllAsync``2(System.String,``0,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="T:Sitas.Edge.Core.Events.EventHandlerRegistration">
+            <summary>
+            Registration information for an event handler.
+            </summary>
+        </member>
+        <member name="T:Sitas.Edge.Core.Events.IEventContext">
+            <summary>
+            Base context for event handlers. Protocol-specific contexts extend this interface
+            to provide additional capabilities (e.g., IEdgePlcDriverEventContext for PLC read/write).
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.IEventContext.EventName">
+            <summary>
+            Gets the name of the event being handled.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.IEventContext.Timestamp">
+            <summary>
+            Gets the timestamp when the event was emitted.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.IEventContext.CorrelationId">
+            <summary>
+            Gets the correlation ID for tracking the event across systems.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.IEventContext.Metadata">
+            <summary>
+            Gets additional metadata associated with the event.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.IEventContext.SetMetadata(System.String,System.Object)">
+            <summary>
+            Sets a metadata value.
+            </summary>
+        </member>
+        <member name="T:Sitas.Edge.Core.Events.IMqttEventContext">
+            <summary>
+            Event context with MQTT-specific capabilities.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.IMqttEventContext.PublishAsync``1(System.String,``0,System.Threading.CancellationToken)">
+            <summary>
+            Publishes a message to an MQTT topic.
+            </summary>
+            <typeparam name="T">The type of message to publish.</typeparam>
+            <param name="topic">The MQTT topic.</param>
+            <param name="message">The message payload.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+        </member>
+        <member name="T:Sitas.Edge.Core.Events.IEdgePlcDriverEventContext">
+            <summary>
+            Event context with Edge PLC Driver capabilities.
+            Provides read and write access to PLC tags during event handling.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.IEdgePlcDriverEventContext.ConnectionName">
+            <summary>
+            Gets the connection name for this context.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.IEdgePlcDriverEventContext.ReadTagAsync``1(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Reads a tag value from the PLC.
+            </summary>
+            <typeparam name="T">The expected type of the tag value.</typeparam>
+            <param name="tagName">The name of the tag to read.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>The tag value with quality and timestamp information.</returns>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.IEdgePlcDriverEventContext.WriteTagAsync``1(System.String,``0,System.Threading.CancellationToken)">
+            <summary>
+            Writes a value to a PLC tag.
+            </summary>
+            <typeparam name="T">The type of value to write.</typeparam>
+            <param name="tagName">The name of the tag to write.</param>
+            <param name="value">The value to write.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.IEdgePlcDriverEventContext.ReadTagsAsync(System.Collections.Generic.IEnumerable{System.String},System.Threading.CancellationToken)">
+            <summary>
+            Reads multiple tags from the PLC.
+            </summary>
+            <param name="tagNames">The names of the tags to read.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>A dictionary of tag names to their values.</returns>
+        </member>
+        <member name="T:Sitas.Edge.Core.Events.IEventHandler`1">
+            <summary>
+            Defines a handler for processing events triggered by the EventMediator.
+            Unlike IMessageSubscriptionHandler (polling-based), event handlers are invoked
+            on-demand when a user calls EventMediator.EmitAsync().
+            </summary>
+            <typeparam name="TEvent">The type of event data this handler processes.</typeparam>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.IEventHandler`1.HandleAsync(`0,Sitas.Edge.Core.Events.TagReadResults,System.Threading.CancellationToken)">
+            <summary>
+            Handles an event with tag values read from attributes.
+            Protocol-specific capabilities (publish/read/write) should be obtained via
+            dependency injection (e.g., inject ISitasEdge and get the desired connection),
+            rather than being passed as a context parameter.
+            </summary>
+            <param name="eventData">The event data sent by the user via EmitAsync.</param>
+            <param name="tagValues">Values read from tags specified in [AsCommRead] or similar attributes.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>A task representing the asynchronous operation.</returns>
+        </member>
+        <member name="T:Sitas.Edge.Core.Events.IEventHandler`2">
+            <summary>
+            Defines a handler for events that returns a result.
+            </summary>
+            <typeparam name="TEvent">The type of event data this handler processes.</typeparam>
+            <typeparam name="TResult">The type of result returned by this handler.</typeparam>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.IEventHandler`2.HandleAsync(`0,Sitas.Edge.Core.Events.TagReadResults,System.Threading.CancellationToken)">
+            <summary>
+            Handles an event and returns a result.
+            </summary>
+            <param name="eventData">The event data sent by the user via EmitAsync.</param>
+            <param name="tagValues">Values read from tags specified in [AsCommRead] or similar attributes.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>The result of handling the event.</returns>
+        </member>
+        <member name="T:Sitas.Edge.Core.Events.IEventMediator">
+            <summary>
+            Mediator for emitting events to registered handlers.
+            Events are processed on-demand (not polling-based) and can trigger
+            tag reads defined via attributes on the handler class.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.IEventMediator.EmitAsync``1(System.String,``0,System.Threading.CancellationToken)">
+            <summary>
+            Emits an event to all handlers registered for the specified event name.
+            </summary>
+            <typeparam name="TEvent">The type of event data.</typeparam>
+            <param name="eventName">The name of the event to emit.</param>
+            <param name="eventData">The event data to pass to handlers.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>A task representing the asynchronous operation.</returns>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.IEventMediator.EmitAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Emits an event without typed data.
+            </summary>
+            <param name="eventName">The name of the event to emit.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.IEventMediator.EmitAsync``2(System.String,``0,System.Threading.CancellationToken)">
+            <summary>
+            Emits an event and returns a result from the handler.
+            </summary>
+            <typeparam name="TEvent">The type of event data.</typeparam>
+            <typeparam name="TResult">The expected result type.</typeparam>
+            <param name="eventName">The name of the event to emit.</param>
+            <param name="eventData">The event data to pass to handlers.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>The result from the handler.</returns>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.IEventMediator.EmitToAllAsync``2(System.String,``0,System.Threading.CancellationToken)">
+            <summary>
+            Emits an event to all handlers and collects all results.
+            Useful when multiple handlers can respond to the same event.
+            </summary>
+            <typeparam name="TEvent">The type of event data.</typeparam>
+            <typeparam name="TResult">The expected result type.</typeparam>
+            <param name="eventName">The name of the event to emit.</param>
+            <param name="eventData">The event data to pass to handlers.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>All results from handlers.</returns>
+        </member>
+        <member name="T:Sitas.Edge.Core.Events.ITagReaderProvider">
+            <summary>
+            Provider for tag readers used by the event mediator.
+            Implementations register tag readers for different connections (e.g., PLC connections).
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.ITagReaderProvider.GetReader(System.String)">
+            <summary>
+            Gets a tag reader for the specified connection name.
+            </summary>
+            <param name="connectionName">The name of the connection.</param>
+            <returns>The tag reader, or null if not found.</returns>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.ITagReaderProvider.CreateContext(System.String,System.String)">
+            <summary>
+            Creates an event context for the specified connection.
+            </summary>
+            <param name="connectionName">The name of the connection.</param>
+            <param name="eventName">The name of the event.</param>
+            <returns>A protocol-specific event context.</returns>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.ITagReaderProvider.RegisterReader(System.String,Sitas.Edge.Core.Events.ITagReader)">
+            <summary>
+            Registers a tag reader for a connection.
+            </summary>
+            <param name="connectionName">The name of the connection.</param>
+            <param name="reader">The tag reader to register.</param>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.ITagReaderProvider.RegisterContextFactory(System.String,System.Func{System.String,Sitas.Edge.Core.Events.IEventContext})">
+            <summary>
+            Registers a context factory for a connection.
+            </summary>
+            <param name="connectionName">The name of the connection.</param>
+            <param name="contextFactory">Factory function to create contexts.</param>
+        </member>
+        <member name="T:Sitas.Edge.Core.Events.ITagReader">
+            <summary>
+            Interface for reading tags from a data source (e.g., PLC).
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.ITagReader.ReadTagAsync(System.String,System.Type,System.Threading.CancellationToken)">
+            <summary>
+            Reads a tag value asynchronously.
+            </summary>
+            <param name="tagName">The name of the tag to read.</param>
+            <param name="valueType">The expected type of the value, or null for auto-detect.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>The tag value with metadata.</returns>
+        </member>
+        <member name="T:Sitas.Edge.Core.Events.TagReaderProvider">
+            <summary>
+            Default implementation of <see cref="T:Sitas.Edge.Core.Events.ITagReaderProvider"/>.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.TagReaderProvider.GetReader(System.String)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.TagReaderProvider.CreateContext(System.String,System.String)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.TagReaderProvider.RegisterReader(System.String,Sitas.Edge.Core.Events.ITagReader)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.TagReaderProvider.RegisterContextFactory(System.String,System.Func{System.String,Sitas.Edge.Core.Events.IEventContext})">
+            <inheritdoc/>
+        </member>
+        <member name="T:Sitas.Edge.Core.Events.TagReadResults">
+            <summary>
+            Container for tag values read based on [AsCommRead] or similar attributes
+            on the event handler class. These values are read once when the event is emitted.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.TagReadResults.Get``1(System.String)">
+            <summary>
+            Gets a tag value by name, cast to the expected type.
+            </summary>
+            <typeparam name="T">The expected type of the tag value.</typeparam>
+            <param name="tagName">The name of the tag.</param>
+            <returns>The tag value, or default if not found or cannot be cast.</returns>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.TagReadResults.GetTagValue``1(System.String)">
+            <summary>
+            Gets a tag value with full metadata (quality, timestamp, etc.).
+            </summary>
+            <typeparam name="T">The expected type of the tag value.</typeparam>
+            <param name="tagName">The name of the tag.</param>
+            <returns>The tag value with metadata, or null if not found.</returns>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.TagReadResults.GetRequired``1(System.String)">
+            <summary>
+            Gets a tag value, throwing if not found.
+            </summary>
+            <typeparam name="T">The expected type of the tag value.</typeparam>
+            <param name="tagName">The name of the tag.</param>
+            <returns>The tag value.</returns>
+            <exception cref="T:System.Collections.Generic.KeyNotFoundException">Thrown when the tag is not found.</exception>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.TagReadResults.Contains(System.String)">
+            <summary>
+            Checks if a tag value exists in the results.
+            </summary>
+            <param name="tagName">The name of the tag.</param>
+            <returns>True if the tag exists, false otherwise.</returns>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.TagReadResults.TagNames">
+            <summary>
+            Gets all tag names in the results.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.TagReadResults.Count">
+            <summary>
+            Gets the count of tag values.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.TagReadResults.AllGoodQuality">
+            <summary>
+            Checks if there are any tag values in good quality.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.TagReadResults.BadQualityTags">
+            <summary>
+            Gets tags that have bad quality.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Events.TagReadResults.Add(System.String,Sitas.Edge.Core.Events.TagReadValue{System.Object})">
+            <summary>
+            Adds a tag value to the results. Used internally by the event mediator.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.TagReadResults.Empty">
+            <summary>
+            Creates an empty TagReadResults instance.
+            </summary>
+        </member>
+        <member name="T:Sitas.Edge.Core.Events.TagReadValue`1">
+            <summary>
+            Represents a single tag value read from a data source.
+            </summary>
+            <typeparam name="T">The type of the tag value.</typeparam>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.TagReadValue`1.TagName">
+            <summary>
+            Gets or sets the name of the tag.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.TagReadValue`1.Value">
+            <summary>
+            Gets or sets the value read from the tag.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.TagReadValue`1.Quality">
+            <summary>
+            Gets or sets the quality of the read.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.TagReadValue`1.Timestamp">
+            <summary>
+            Gets or sets the timestamp when the value was read.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Events.TagReadValue`1.IsGood">
+            <summary>
+            Indicates whether the read was successful (good quality).
+            </summary>
+        </member>
+        <member name="T:Sitas.Edge.Core.Events.TagQuality">
+            <summary>
+            Represents the quality of a tag read operation.
+            </summary>
+        </member>
+        <member name="F:Sitas.Edge.Core.Events.TagQuality.Good">
+            <summary>
+            The value was read successfully and is valid.
+            </summary>
+        </member>
+        <member name="F:Sitas.Edge.Core.Events.TagQuality.Uncertain">
+            <summary>
+            The value quality is uncertain.
+            </summary>
+        </member>
+        <member name="F:Sitas.Edge.Core.Events.TagQuality.Bad">
+            <summary>
+            The read failed or the value is invalid.
+            </summary>
+        </member>
+        <member name="F:Sitas.Edge.Core.Events.TagQuality.CommError">
+            <summary>
+            A communication error occurred.
+            </summary>
+        </member>
+        <member name="T:Sitas.Edge.Core.Internal.ActivatorHandlerResolver">
+            <summary>
+            Default handler resolver that uses Activator.CreateInstance.
+            For use when dependency injection is not configured.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Internal.ActivatorHandlerResolver.Instance">
+            <summary>
+            Gets the singleton instance of the activator handler resolver.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Internal.ActivatorHandlerResolver.Resolve(System.Type)">
+            <inheritdoc />
+        </member>
+        <member name="M:Sitas.Edge.Core.Internal.ActivatorHandlerResolver.Resolve``1">
+            <inheritdoc />
+        </member>
+        <member name="M:Sitas.Edge.Core.Internal.ActivatorHandlerResolver.ResolveScoped(System.Type)">
+            <inheritdoc />
+        </member>
+        <member name="T:Sitas.Edge.Core.Internal.DefaultMessageContext">
+            <summary>
+            Default implementation of message context.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Internal.DefaultMessageContext.Topic">
+            <inheritdoc />
+        </member>
+        <member name="P:Sitas.Edge.Core.Internal.DefaultMessageContext.CorrelationId">
+            <inheritdoc />
+        </member>
+        <member name="P:Sitas.Edge.Core.Internal.DefaultMessageContext.ReceivedAt">
+            <inheritdoc />
+        </member>
+        <member name="P:Sitas.Edge.Core.Internal.DefaultMessageContext.RawPayload">
+            <inheritdoc />
+        </member>
+        <member name="P:Sitas.Edge.Core.Internal.DefaultMessageContext.Publisher">
+            <inheritdoc />
+        </member>
+        <member name="P:Sitas.Edge.Core.Internal.DefaultMessageContext.Metadata">
+            <inheritdoc />
+        </member>
+        <member name="M:Sitas.Edge.Core.Internal.DefaultMessageContext.#ctor(System.String,System.ReadOnlyMemory{System.Byte},Sitas.Edge.Core.Abstractions.IMessagePublisher,System.String,System.Collections.Generic.IReadOnlyDictionary{System.String,System.String})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Sitas.Edge.Core.Internal.DefaultMessageContext"/> class.
+            </summary>
+            <param name="topic">The topic the message was received on.</param>
+            <param name="rawPayload">The raw message payload bytes.</param>
+            <param name="publisher">The publisher for sending responses.</param>
+            <param name="correlationId">Optional correlation ID for message tracking.</param>
+            <param name="metadata">Optional additional metadata.</param>
+        </member>
+        <member name="T:Sitas.Edge.Core.Internal.DefaultMessageContext`1">
+            <summary>
+            Default implementation of typed message context.
+            </summary>
+            <typeparam name="TMessage">The message type.</typeparam>
+        </member>
+        <member name="P:Sitas.Edge.Core.Internal.DefaultMessageContext`1.Message">
+            <inheritdoc />
+        </member>
+        <member name="P:Sitas.Edge.Core.Internal.DefaultMessageContext`1.Topic">
+            <inheritdoc />
+        </member>
+        <member name="P:Sitas.Edge.Core.Internal.DefaultMessageContext`1.CorrelationId">
+            <inheritdoc />
+        </member>
+        <member name="P:Sitas.Edge.Core.Internal.DefaultMessageContext`1.ReceivedAt">
+            <inheritdoc />
+        </member>
+        <member name="P:Sitas.Edge.Core.Internal.DefaultMessageContext`1.RawPayload">
+            <inheritdoc />
+        </member>
+        <member name="P:Sitas.Edge.Core.Internal.DefaultMessageContext`1.Publisher">
+            <inheritdoc />
+        </member>
+        <member name="P:Sitas.Edge.Core.Internal.DefaultMessageContext`1.Metadata">
+            <inheritdoc />
+        </member>
+        <member name="M:Sitas.Edge.Core.Internal.DefaultMessageContext`1.#ctor(Sitas.Edge.Core.Abstractions.IMessageContext,`0)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Sitas.Edge.Core.Internal.DefaultMessageContext`1"/> class.
+            </summary>
+            <param name="inner">The base message context.</param>
+            <param name="message">The deserialized message.</param>
+        </member>
+        <member name="T:Sitas.Edge.Core.Serialization.JsonMessageSerializer">
+            <summary>
+            Default JSON-based message serializer using System.Text.Json.
+            </summary>
+        </member>
+        <member name="P:Sitas.Edge.Core.Serialization.JsonMessageSerializer.Default">
+            <summary>
+            Gets the default serializer instance with sensible defaults.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Serialization.JsonMessageSerializer.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Sitas.Edge.Core.Serialization.JsonMessageSerializer"/> class.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.Serialization.JsonMessageSerializer.#ctor(System.Text.Json.JsonSerializerOptions)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Sitas.Edge.Core.Serialization.JsonMessageSerializer"/> class with custom options.
+            </summary>
+            <param name="options">The JSON serializer options.</param>
+        </member>
+        <member name="M:Sitas.Edge.Core.Serialization.JsonMessageSerializer.Serialize``1(``0)">
+            <inheritdoc />
+        </member>
+        <member name="M:Sitas.Edge.Core.Serialization.JsonMessageSerializer.Deserialize``1(System.ReadOnlyMemory{System.Byte})">
+            <inheritdoc />
+        </member>
+        <member name="M:Sitas.Edge.Core.Serialization.JsonMessageSerializer.Deserialize(System.ReadOnlyMemory{System.Byte},System.Type)">
+            <inheritdoc />
+        </member>
+        <member name="T:Sitas.Edge.Core.SitasEdge">
+            <summary>
+            Default implementation of ISitasEdge that manages multiple connections.
+            </summary>
+        </member>
+        <member name="T:Sitas.Edge.Core.SitasEdgeBuilder">
+            <summary>
+            Main entry point for building Nexus Service Bus connections.
+            Provides a fluent API for configuring DI and adding protocol connections.
+            </summary>
+            <example>
+            // With IServiceProvider (any container)
+            var nexus = SitasEdgeBuilder.Create()
+                .WithServiceProvider(serviceProvider)
+                .AddMqttConnection(mqtt => mqtt
+                    .WithBroker("localhost", 1883)
+                    .WithHandlersFromEntryAssembly())
+                .Build();
+            
+            // With custom factory (Autofac, Ninject, etc.)
+            var nexus = SitasEdgeBuilder.Create()
+                .WithActivator(type => container.Resolve(type))
+                .AddMqttConnection(mqtt => mqtt.WithBroker("localhost"))
+                .Build();
+            </example>
+        </member>
+        <member name="P:Sitas.Edge.Core.SitasEdgeBuilder.ServiceProvider">
+            <summary>
+            Gets the configured service provider, if available.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.SitasEdgeBuilder.Create">
+            <summary>
+            Creates a new Nexus builder instance.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.SitasEdgeBuilder.WithServiceProvider(System.IServiceProvider)">
+            <summary>
+            Configures the handler activator using an IServiceProvider.
+            Works with any DI container that provides IServiceProvider.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.SitasEdgeBuilder.WithActivator(System.Func{System.Type,System.Object})">
+            <summary>
+            Configures the handler activator using a factory function.
+            Use this for direct integration with any DI container.
+            </summary>
+            <example>
+            // Autofac
+            .WithActivator(type => container.Resolve(type))
+            
+            // SimpleInjector  
+            .WithActivator(type => container.GetInstance(type))
+            
+            // Ninject
+            .WithActivator(type => kernel.Get(type))
+            </example>
+        </member>
+        <member name="M:Sitas.Edge.Core.SitasEdgeBuilder.WithActivator(Sitas.Edge.Core.Abstractions.IHandlerActivator)">
+            <summary>
+            Configures the handler activator using a custom implementation.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.SitasEdgeBuilder.AddConnection``1(System.Func{Sitas.Edge.Core.Abstractions.IHandlerActivator,System.IServiceProvider,``0})">
+            <summary>
+            Registers a connection factory to be built.
+            This is used by protocol-specific extension methods.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.Core.SitasEdgeBuilder.Build">
+            <summary>
+            Builds all configured connections and returns the Nexus instance.
+            </summary>
+        </member>
+    </members>
+</doc>

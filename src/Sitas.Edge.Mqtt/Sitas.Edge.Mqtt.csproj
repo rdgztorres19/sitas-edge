@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    
+    <!-- NuGet Package Info -->
+    <PackageId>Sitas.Edge.Mqtt</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Sitas Team</Authors>
+    <Description>MQTT implementation for Sitas.Edge with attribute-based topic subscription discovery.</Description>
+    <PackageTags>servicebus;mqtt;messaging;pubsub;mqttnet;sitas;edge</PackageTags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MQTTnet" Version="4.3.7.1207" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sitas.Edge.Core\Sitas.Edge.Core.csproj" />
+  </ItemGroup>
+
+</Project>

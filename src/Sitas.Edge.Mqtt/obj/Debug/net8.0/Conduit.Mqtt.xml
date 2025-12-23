@@ -1,0 +1,521 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Conduit.Mqtt</name>
+    </assembly>
+    <members>
+        <member name="T:Conduit.Mqtt.Attributes.MqttSubscribeAttribute">
+            <summary>
+            Marks a message handler class to subscribe to an MQTT topic.
+            Multiple attributes can be applied to subscribe to multiple topics.
+            </summary>
+            <remarks>
+            MQTT Topic Wildcards:
+            - Single-level: + (matches exactly one topic level)
+            - Multi-level: # (matches any number of levels, must be last character)
+            
+            Examples:
+            - "machines/+/heartbeat" matches "machines/123/heartbeat"
+            - "sensors/#" matches "sensors/temp/room1" and "sensors/humidity"
+            </remarks>
+            <example>
+            <code>
+            [MqttSubscribe("default", "machines/+/heartbeat", QualityOfService.AtMostOnce)]
+            public class HeartbeatHandler : IMessageHandler&lt;Heartbeat&gt;
+            {
+                public Task HandleAsync(Heartbeat message, IMessageContext context, CancellationToken ct)
+                {
+                    // Handle the heartbeat message
+                    return Task.CompletedTask;
+                }
+            }
+            </code>
+            </example>
+        </member>
+        <member name="P:Conduit.Mqtt.Attributes.MqttSubscribeAttribute.NoLocal">
+            <summary>
+            Gets or sets whether the subscription should receive messages that were published
+            before the subscription was made (retained messages).
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.Attributes.MqttSubscribeAttribute.RetainAsPublished">
+            <summary>
+            Gets or sets whether retained messages should be sent when the subscription is made.
+            </summary>
+        </member>
+        <member name="M:Conduit.Mqtt.Attributes.MqttSubscribeAttribute.#ctor(System.String,System.String,Conduit.Core.Enums.QualityOfService)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Conduit.Mqtt.Attributes.MqttSubscribeAttribute"/> class.
+            </summary>
+            <param name="connectionName">
+            The name of the MQTT connection to use. Must match a configured connection name.
+            </param>
+            <param name="topic">
+            The MQTT topic pattern to subscribe to. Supports + and # wildcards.
+            </param>
+            <param name="qos">
+            The quality of service level for the subscription.
+            Defaults to AtLeastOnce (QoS 1).
+            </param>
+        </member>
+        <member name="T:Conduit.Mqtt.ConduitBuilderMqttExtensions">
+            <summary>
+            Extension methods for adding MQTT connections to ConduitBuilder.
+            </summary>
+        </member>
+        <member name="M:Conduit.Mqtt.ConduitBuilderMqttExtensions.AddMqttConnection(Conduit.Core.ConduitBuilder,System.Action{Conduit.Mqtt.IMqttClientBuilder})">
+            <summary>
+            Adds an MQTT connection to the Nexus builder.
+            </summary>
+            <example>
+            var nexus = ConduitBuilder.Create()
+                .WithServiceProvider(serviceProvider)
+                .AddMqttConnection(mqtt => mqtt
+                    .WithConnectionName("mqtt")
+                    .WithBroker("localhost", 1883)
+                    .WithCredentials("user", "password")
+                    .WithHandlersFromEntryAssembly())
+                .Build();
+            </example>
+        </member>
+        <member name="M:Conduit.Mqtt.ConduitBuilderMqttExtensions.AddMqttConnection(Conduit.Core.ConduitBuilder,System.String,System.Action{Conduit.Mqtt.IMqttClientBuilder})">
+            <summary>
+            Adds an MQTT connection with a specific connection name.
+            </summary>
+        </member>
+        <member name="T:Conduit.Mqtt.Configuration.MqttConnectionOptions">
+            <summary>
+            Configuration options for an MQTT connection.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.Configuration.MqttConnectionOptions.ConnectionName">
+            <summary>
+            Gets or sets the connection name for identification.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.Configuration.MqttConnectionOptions.Host">
+            <summary>
+            Gets or sets the broker host address.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.Configuration.MqttConnectionOptions.Port">
+            <summary>
+            Gets or sets the broker port.
+            Default is 1883 for non-TLS, 8883 for TLS.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.Configuration.MqttConnectionOptions.ClientId">
+            <summary>
+            Gets or sets the client identifier.
+            If not set, a unique ID will be generated.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.Configuration.MqttConnectionOptions.Username">
+            <summary>
+            Gets or sets the username for authentication.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.Configuration.MqttConnectionOptions.Password">
+            <summary>
+            Gets or sets the password for authentication.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.Configuration.MqttConnectionOptions.UseTls">
+            <summary>
+            Gets or sets whether TLS/SSL should be used.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.Configuration.MqttConnectionOptions.ValidateCertificate">
+            <summary>
+            Gets or sets whether to validate the server certificate.
+            Set to false for self-signed certificates.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.Configuration.MqttConnectionOptions.CleanSession">
+            <summary>
+            Gets or sets the clean session flag.
+            When true, the broker discards any previous session data.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.Configuration.MqttConnectionOptions.KeepAliveSeconds">
+            <summary>
+            Gets or sets the keep-alive interval in seconds.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.Configuration.MqttConnectionOptions.ConnectionTimeoutSeconds">
+            <summary>
+            Gets or sets the connection timeout in seconds.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.Configuration.MqttConnectionOptions.AutoReconnect">
+            <summary>
+            Gets or sets whether to enable automatic reconnection.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.Configuration.MqttConnectionOptions.MaxReconnectDelaySeconds">
+            <summary>
+            Gets or sets the maximum retry delay in seconds for reconnection.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.Configuration.MqttConnectionOptions.ProtocolVersion">
+            <summary>
+            Gets or sets the MQTT protocol version.
+            </summary>
+        </member>
+        <member name="T:Conduit.Mqtt.Configuration.MqttProtocolVersion">
+            <summary>
+            MQTT protocol versions.
+            </summary>
+        </member>
+        <member name="F:Conduit.Mqtt.Configuration.MqttProtocolVersion.V311">
+            <summary>
+            MQTT 3.1.1
+            </summary>
+        </member>
+        <member name="F:Conduit.Mqtt.Configuration.MqttProtocolVersion.V500">
+            <summary>
+            MQTT 5.0
+            </summary>
+        </member>
+        <member name="T:Conduit.Mqtt.Events.MqttEventContext">
+            <summary>
+            MQTT-specific event context implementation.
+            Provides the ability to publish messages to MQTT topics during event handling.
+            </summary>
+        </member>
+        <member name="M:Conduit.Mqtt.Events.MqttEventContext.#ctor(System.String,Conduit.Mqtt.IMqttPublisher)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Conduit.Mqtt.Events.MqttEventContext"/> class.
+            </summary>
+            <param name="eventName">The name of the event.</param>
+            <param name="publisher">The MQTT publisher to use for publishing messages.</param>
+        </member>
+        <member name="P:Conduit.Mqtt.Events.MqttEventContext.EventName">
+            <inheritdoc/>
+        </member>
+        <member name="P:Conduit.Mqtt.Events.MqttEventContext.Timestamp">
+            <inheritdoc/>
+        </member>
+        <member name="P:Conduit.Mqtt.Events.MqttEventContext.CorrelationId">
+            <inheritdoc/>
+        </member>
+        <member name="P:Conduit.Mqtt.Events.MqttEventContext.Metadata">
+            <inheritdoc/>
+        </member>
+        <member name="M:Conduit.Mqtt.Events.MqttEventContext.SetMetadata(System.String,System.Object)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Conduit.Mqtt.Events.MqttEventContext.PublishAsync``1(System.String,``0,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="T:Conduit.Mqtt.IMqttClientBuilder">
+            <summary>
+            Builder interface for configuring MQTT connections.
+            Follows the fluent builder pattern for intuitive configuration.
+            </summary>
+        </member>
+        <member name="M:Conduit.Mqtt.IMqttClientBuilder.WithConnectionName(System.String)">
+            <summary>
+            Sets the connection name for identification when using multiple connections.
+            </summary>
+            <param name="name">The connection name.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.Mqtt.IMqttClientBuilder.WithBroker(System.String,System.Int32)">
+            <summary>
+            Configures the MQTT broker endpoint.
+            </summary>
+            <param name="host">The broker host address.</param>
+            <param name="port">The broker port (default: 1883).</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.Mqtt.IMqttClientBuilder.WithCredentials(System.String,System.String)">
+            <summary>
+            Configures authentication credentials.
+            </summary>
+            <param name="username">The username.</param>
+            <param name="password">The password.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.Mqtt.IMqttClientBuilder.WithTls(System.Boolean,System.Boolean)">
+            <summary>
+            Enables or disables TLS/SSL encryption.
+            </summary>
+            <param name="enabled">Whether to enable TLS.</param>
+            <param name="validateCertificate">Whether to validate the server certificate.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.Mqtt.IMqttClientBuilder.WithClientId(System.String)">
+            <summary>
+            Sets the MQTT client identifier.
+            </summary>
+            <param name="clientId">The client ID.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.Mqtt.IMqttClientBuilder.WithCleanSession(System.Boolean)">
+            <summary>
+            Configures the clean session behavior.
+            </summary>
+            <param name="cleanSession">Whether to use clean sessions.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.Mqtt.IMqttClientBuilder.WithKeepAlive(System.Int32)">
+            <summary>
+            Configures the keep-alive interval.
+            </summary>
+            <param name="seconds">The keep-alive interval in seconds.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.Mqtt.IMqttClientBuilder.WithAutoReconnect(System.Boolean,System.Int32)">
+            <summary>
+            Enables automatic reconnection with exponential backoff.
+            </summary>
+            <param name="enabled">Whether to enable auto-reconnect.</param>
+            <param name="maxDelaySeconds">Maximum delay between reconnection attempts.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.Mqtt.IMqttClientBuilder.WithSerializer(Conduit.Core.Abstractions.IMessageSerializer)">
+            <summary>
+            Configures a custom message serializer.
+            </summary>
+            <param name="serializer">The serializer to use.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.Mqtt.IMqttClientBuilder.WithHandlerResolver(Conduit.Core.Abstractions.IHandlerResolver)">
+            <summary>
+            Configures a handler resolver for dependency injection.
+            </summary>
+            <param name="resolver">The handler resolver.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.Mqtt.IMqttClientBuilder.WithHandlerActivator(Conduit.Core.Abstractions.IHandlerActivator)">
+            <summary>
+            Configures a handler activator for dependency injection.
+            This is the preferred method for integrating with any DI container.
+            </summary>
+            <param name="activator">The handler activator.</param>
+            <returns>The builder for chaining.</returns>
+            <example>
+            // With IServiceProvider (works with any container)
+            builder.WithHandlerActivator(new ServiceProviderActivator(serviceProvider));
+            
+            // With custom factory function
+            builder.WithHandlerActivator(new FuncActivator(type => container.Resolve(type)));
+            </example>
+        </member>
+        <member name="M:Conduit.Mqtt.IMqttClientBuilder.WithHandlersFromAssemblies(System.Reflection.Assembly[])">
+            <summary>
+            Discovers and registers message handlers from the specified assemblies.
+            </summary>
+            <param name="assemblies">The assemblies to scan for handlers.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.Mqtt.IMqttClientBuilder.WithHandlersFromEntryAssembly">
+            <summary>
+            Discovers and registers message handlers from the entry assembly.
+            </summary>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="T:Conduit.Mqtt.IMqttConnection">
+            <summary>
+            Represents an active MQTT connection with protocol-specific features.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.IMqttConnection.Publisher">
+            <summary>
+            Gets the MQTT-specific publisher for enhanced publishing options.
+            </summary>
+        </member>
+        <member name="M:Conduit.Mqtt.IMqttConnection.SubscribeAsync(System.String,System.Func{System.ReadOnlyMemory{System.Byte},Conduit.Core.Abstractions.IMessageContext,System.Threading.CancellationToken,System.Threading.Tasks.Task},Conduit.Core.Enums.QualityOfService,System.Threading.CancellationToken)">
+            <summary>
+            Manually subscribes to a topic with a raw message handler.
+            Use this for dynamic subscriptions not covered by attribute-based discovery.
+            </summary>
+            <param name="topic">The topic pattern to subscribe to.</param>
+            <param name="handler">The handler to invoke when messages arrive.</param>
+            <param name="qos">The quality of service level.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>A disposable subscription that can be used to unsubscribe.</returns>
+        </member>
+        <member name="M:Conduit.Mqtt.IMqttConnection.SubscribeAsync(System.String,System.Func{System.String,System.ReadOnlyMemory{System.Byte},Conduit.Core.Abstractions.IMessageContext,System.Threading.CancellationToken,System.Threading.Tasks.Task},Conduit.Core.Enums.QualityOfService,System.Threading.CancellationToken)">
+            <summary>
+            Manually subscribes to a topic with a raw message handler that receives the topic.
+            Useful for wildcard subscriptions where you need to know which topic matched.
+            </summary>
+            <param name="topic">The topic pattern to subscribe to.</param>
+            <param name="handler">The handler to invoke when messages arrive (receives topic, payload, context, cancellationToken).</param>
+            <param name="qos">The quality of service level.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>A disposable subscription that can be used to unsubscribe.</returns>
+        </member>
+        <member name="M:Conduit.Mqtt.IMqttConnection.SubscribeAsync``1(System.String,System.Func{``0,Conduit.Core.Abstractions.IMessageContext,System.Threading.CancellationToken,System.Threading.Tasks.Task},Conduit.Core.Enums.QualityOfService,System.Threading.CancellationToken)">
+            <summary>
+            Manually subscribes to a topic with a typed message handler.
+            </summary>
+            <typeparam name="TMessage">The message type.</typeparam>
+            <param name="topic">The topic pattern to subscribe to.</param>
+            <param name="handler">The handler to invoke when messages arrive.</param>
+            <param name="qos">The quality of service level.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>A disposable subscription that can be used to unsubscribe.</returns>
+        </member>
+        <member name="T:Conduit.Mqtt.IMqttPublisher">
+            <summary>
+            MQTT-specific publisher with additional publishing options.
+            </summary>
+        </member>
+        <member name="M:Conduit.Mqtt.IMqttPublisher.PublishAsync``1(System.String,``0,Conduit.Mqtt.MqttPublishOptions,System.Threading.CancellationToken)">
+            <summary>
+            Publishes a message with MQTT-specific options.
+            </summary>
+            <typeparam name="TMessage">The message type.</typeparam>
+            <param name="topic">The topic to publish to.</param>
+            <param name="message">The message to publish.</param>
+            <param name="options">MQTT-specific publish options.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>A task representing the publish operation.</returns>
+        </member>
+        <member name="T:Conduit.Mqtt.MqttPublishOptions">
+            <summary>
+            MQTT-specific publish options.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.MqttPublishOptions.QualityOfService">
+            <summary>
+            Gets or sets the quality of service level.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.MqttPublishOptions.Retain">
+            <summary>
+            Gets or sets whether the message should be retained by the broker.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.MqttPublishOptions.MessageExpiryIntervalSeconds">
+            <summary>
+            Gets or sets the message expiry interval in seconds.
+            Only applicable for MQTT 5.0.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.MqttPublishOptions.ContentType">
+            <summary>
+            Gets or sets the content type of the payload.
+            Only applicable for MQTT 5.0.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.MqttPublishOptions.CorrelationData">
+            <summary>
+            Gets or sets the correlation data for request-response patterns.
+            Only applicable for MQTT 5.0.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.MqttPublishOptions.ResponseTopic">
+            <summary>
+            Gets or sets the response topic for request-response patterns.
+            Only applicable for MQTT 5.0.
+            </summary>
+        </member>
+        <member name="P:Conduit.Mqtt.MqttPublishOptions.UserProperties">
+            <summary>
+            Gets or sets user properties.
+            Only applicable for MQTT 5.0.
+            </summary>
+        </member>
+        <member name="T:Conduit.Mqtt.Internal.DynamicSubscription">
+            <summary>
+            Represents a dynamic subscription that can be disposed to unsubscribe.
+            </summary>
+        </member>
+        <member name="T:Conduit.Mqtt.Internal.TopicMatcher">
+            <summary>
+            Utility class for matching MQTT topic patterns with wildcards.
+            </summary>
+        </member>
+        <member name="M:Conduit.Mqtt.Internal.TopicMatcher.Matches(System.String,System.String)">
+            <summary>
+            Checks if a topic matches a pattern with wildcards.
+            </summary>
+            <param name="pattern">The subscription pattern (may contain + and #).</param>
+            <param name="topic">The actual topic to match against.</param>
+            <returns>True if the topic matches the pattern.</returns>
+        </member>
+        <member name="M:Conduit.Mqtt.Internal.TopicMatcher.IsValidPattern(System.String)">
+            <summary>
+            Validates a topic pattern.
+            </summary>
+            <param name="pattern">The pattern to validate.</param>
+            <returns>True if the pattern is valid.</returns>
+        </member>
+        <member name="T:Conduit.Mqtt.MqttClientBuilder">
+            <summary>
+            Builder for configuring and creating MQTT connections.
+            </summary>
+        </member>
+        <member name="M:Conduit.Mqtt.MqttClientBuilder.Create">
+            <summary>
+            Creates a new MQTT client builder.
+            </summary>
+        </member>
+        <member name="M:Conduit.Mqtt.MqttClientBuilder.WithConnectionName(System.String)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.Mqtt.MqttClientBuilder.WithBroker(System.String,System.Int32)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.Mqtt.MqttClientBuilder.WithCredentials(System.String,System.String)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.Mqtt.MqttClientBuilder.WithTls(System.Boolean,System.Boolean)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.Mqtt.MqttClientBuilder.WithClientId(System.String)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.Mqtt.MqttClientBuilder.WithCleanSession(System.Boolean)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.Mqtt.MqttClientBuilder.WithKeepAlive(System.Int32)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.Mqtt.MqttClientBuilder.WithAutoReconnect(System.Boolean,System.Int32)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.Mqtt.MqttClientBuilder.WithSerializer(Conduit.Core.Abstractions.IMessageSerializer)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.Mqtt.MqttClientBuilder.WithHandlerResolver(Conduit.Core.Abstractions.IHandlerResolver)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.Mqtt.MqttClientBuilder.WithHandlerActivator(Conduit.Core.Abstractions.IHandlerActivator)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.Mqtt.MqttClientBuilder.WithLoggerFactory(Microsoft.Extensions.Logging.ILoggerFactory)">
+            <summary>
+            Configures the logger factory for logging.
+            </summary>
+            <param name="loggerFactory">The logger factory.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.Mqtt.MqttClientBuilder.WithHandlersFromAssemblies(System.Reflection.Assembly[])">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.Mqtt.MqttClientBuilder.WithHandlersFromEntryAssembly">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.Mqtt.MqttClientBuilder.Build">
+            <summary>
+            Builds the MQTT connection with the configured options.
+            </summary>
+            <returns>A configured but not yet connected MQTT connection.</returns>
+        </member>
+        <member name="T:Conduit.Mqtt.MqttConnection">
+            <summary>
+            MQTT connection implementation using MQTTnet.
+            </summary>
+        </member>
+        <member name="T:Conduit.Mqtt.MqttPublisher">
+            <summary>
+            MQTT publisher implementation.
+            </summary>
+        </member>
+    </members>
+</doc>

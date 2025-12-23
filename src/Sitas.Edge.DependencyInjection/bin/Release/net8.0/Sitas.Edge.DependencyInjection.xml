@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Sitas.Edge.DependencyInjection</name>
+    </assembly>
+    <members>
+        <member name="T:Sitas.Edge.DependencyInjection.ServiceCollectionExtensions">
+            <summary>
+            Extension methods for configuring Nexus Service Bus with dependency injection.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.DependencyInjection.ServiceCollectionExtensions.AddSitasEdge(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Action{Sitas.Edge.Core.SitasEdgeBuilder})">
+            <summary>
+            Adds Nexus Service Bus to the service collection using the fluent builder API.
+            </summary>
+            <example>
+            services.AddSitasEdge(nexus => nexus
+                .AddMqttConnection(mqtt => mqtt
+                    .WithBroker("localhost", 1883)
+                    .WithHandlersFromEntryAssembly()));
+            </example>
+        </member>
+        <member name="M:Sitas.Edge.DependencyInjection.ServiceCollectionExtensions.AddSitasEdge(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Action{Sitas.Edge.Core.SitasEdgeBuilder},System.Reflection.Assembly[])">
+            <summary>
+            Adds Nexus Service Bus to the service collection with handler discovery from specified assemblies.
+            </summary>
+        </member>
+        <member name="M:Sitas.Edge.DependencyInjection.ServiceCollectionExtensions.AddSitasEdge(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Func{System.Type,System.Object},System.Action{Sitas.Edge.Core.SitasEdgeBuilder})">
+            <summary>
+            Adds Nexus Service Bus with a custom activator for any DI container.
+            </summary>
+            <example>
+            // Autofac
+            services.AddSitasEdge(
+                type => container.Resolve(type),
+                nexus => nexus.AddMqttConnection(mqtt => mqtt.WithBroker("localhost")));
+            </example>
+        </member>
+        <member name="T:Sitas.Edge.DependencyInjection.SitasEdgeHostedService">
+            <summary>
+            Hosted service that manages the lifecycle of all Nexus connections.
+            Automatically connects on startup and disconnects on shutdown.
+            </summary>
+        </member>
+    </members>
+</doc>

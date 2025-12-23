@@ -1,0 +1,365 @@
+================================================================================
+                    RESUMEN: ASComm IoT para Allen-Bradley Logix
+                    Guía Rápida de Uso - Ejemplos de Código
+================================================================================
+
+Este documento resume cómo usar la librería ASComm IoT para comunicarse con
+PLCs Allen-Bradley (ControlLogix, CompactLogix, GuardPLC, SoftLogix, Micro800).
+
+================================================================================
+                              PROYECTOS INCLUIDOS
+================================================================================
+
+1. Simple/ABLogix    → Leer/Escribir tags primitivos (DINT, REAL, BOOL, etc.)
+2. Struct/ABLogix    → Leer/Escribir estructuras (UDTs)
+3. UnsolMsg/ABLogix  → Recibir mensajes no solicitados del PLC
+
+================================================================================
+                         CONCEPTOS BÁSICOS - JERARQUÍA
+================================================================================
+
+Para comunicarte con un PLC necesitas crear 4 objetos en orden jerárquico:
+
+    ┌─────────────────────────────────────────────────────────────┐
+    │  1. CHANNEL  →  Tipo de conexión (Ethernet)                 │
+    ├─────────────────────────────────────────────────────────────┤
+    │  2. DEVICE   →  El PLC (IP + slot del procesador)           │
+    ├─────────────────────────────────────────────────────────────┤
+    │  3. GROUP    →  Contenedor de tags (para polling)           │
+    ├─────────────────────────────────────────────────────────────┤
+    │  4. ITEM     →  El tag que quieres leer/escribir            │
+    └─────────────────────────────────────────────────────────────┘
+
+================================================================================
+                    EJEMPLO 1: LEER/ESCRIBIR TAGS PRIMITIVOS
+================================================================================
+                         (Proyecto: Simple/ABLogix)
+
+CÓDIGO MÍNIMO PARA LEER UN TAG:
+-------------------------------
+
+using AutomatedSolutions.ASCommStd;
+using ABLogix = AutomatedSolutions.ASCommStd.AB.Logix;
+
+// 1. Crear la jerarquía de objetos
+var channel = new ABLogix.Net.Channel();
+var device = new ABLogix.Device("192.168.0.18,1,0");  // IP,Slot,Puerto
+var group = new ABLogix.Group(false, 500);             // active=false, rate=500ms
+var item = new ABLogix.Item("miItem", "NombreDelTagEnPLC");
+
+// 2. Conectar la jerarquía
+channel.Devices.Add(device);
+device.Groups.Add(group);
+group.Items.Add(item);
+
+// 3. LEER (Síncrono)
+item.Read();
+var valor = item.Values[0];  // El valor leído
+Console.WriteLine("Valor: " + valor);
+
+// 4. ESCRIBIR (Síncrono)
+item.Write(new object[] { 123 });  // Escribe el valor 123
+
+
+LECTURA/ESCRITURA ASÍNCRONA (no bloquea la UI):
+-----------------------------------------------
+
+// Leer
+await item.ReadAsync();
+var valor = item.Values[0];
+
+// Escribir
+await item.WriteAsync(new object[] { 456 });
+
+
+POLLING AUTOMÁTICO (lectura continua):
+--------------------------------------
+
+// Suscribirse al evento DataChanged
+item.DataChanged += (sender, e) => {
+    var theItem = (ABLogix.Item)sender;
+    Console.WriteLine("Nuevo valor: " + theItem.Values[0]);
+};
+
+// Activar el polling (lee cada 500ms según el UpdateRate del Group)
+group.Active = true;
+
+
+LEER MÚLTIPLES TAGS:
+--------------------
+
+var item1 = new ABLogix.Item("item1", "Temperatura");
+var item2 = new ABLogix.Item("item2", "Presion");
+var item3 = new ABLogix.Item("item3", "Nivel");
+
+group.Items.Add(item1);
+group.Items.Add(item2);
+group.Items.Add(item3);
+
+// Leer individualmente
+item1.Read();
+item2.Read();
+
+// O activar polling para todos
+group.Active = true;
+
+
+LEER ARRAYS:
+------------
+
+item.Elements = 10;  // Leer 10 elementos del array
+item.Read();
+
+// Acceder a cada elemento
+for (int i = 0; i < item.Elements; i++)
+{
+    Console.WriteLine($"[{i}] = {item.Values[i]}");
+}
+
+
+================================================================================
+                    EJEMPLO 2: LEER/ESCRIBIR ESTRUCTURAS (UDT)
+================================================================================
+                         (Proyecto: Struct/ABLogix)
+
+PASO 1: Crear una clase C# que coincida con el UDT del PLC
+----------------------------------------------------------
+
+using System.Runtime.InteropServices;
+
+// El UDT en el PLC tiene: limit4 (BOOL), limit7 (BOOL), travel (DINT), 
+//                         errors (SINT), wear (REAL)
+
+[StructLayout(LayoutKind.Sequential)]  // ← OBLIGATORIO
+public class STRUCT_A
+{
+    // Campos públicos, en el MISMO ORDEN que en el PLC
+    public Boolean limit4;
+    public Boolean limit7;
+    public Int32 travel;
+    public Byte errors;
+    public Single wear;
+}
+
+
+REGLAS PARA CREAR CLASES UDT:
+-----------------------------
+✅ Usar [StructLayout(LayoutKind.Sequential)]  - OBLIGATORIO
+✅ Usar campos públicos (public Boolean campo;)
+✅ Campos en el MISMO ORDEN que en el PLC
+✅ Usar class, no struct
+❌ NO usar auto-properties (public int Valor { get; set; })
+
+
+PASO 2: Leer la estructura
+--------------------------
+
+var item = new ABLogix.Item("miItem", "mySTRUCT_A");  // Nombre del tag UDT en PLC
+
+// Crear instancia de la clase
+var miStruct = new STRUCT_A();
+
+// Leer del PLC
+item.Read();
+
+// Convertir bytes a objeto C#
+item.GetStructuredValues(miStruct);  // ← CLAVE
+
+// Usar los valores
+Console.WriteLine("Travel: " + miStruct.travel);
+Console.WriteLine("Wear: " + miStruct.wear);
+
+
+PASO 3: Escribir la estructura
+------------------------------
+
+miStruct.travel = 100;
+miStruct.wear = 25.5f;
+
+item.Write(miStruct);  // Escribe el objeto directamente
+
+
+ARRAYS DE ESTRUCTURAS:
+----------------------
+
+item.Elements = 5;  // Leer 5 elementos
+
+var miArray = new STRUCT_A[5];
+for (int i = 0; i < 5; i++)
+    miArray[i] = new STRUCT_A();
+
+item.Read();
+item.GetStructuredValues(miArray);
+
+// Acceder
+Console.WriteLine(miArray[0].travel);
+Console.WriteLine(miArray[1].wear);
+
+
+ESTRUCTURAS ANIDADAS:
+---------------------
+
+[StructLayout(LayoutKind.Sequential)]
+public class STRUCT_C
+{
+    public Boolean hours_full;
+    public STRUCT_B today = new STRUCT_B();  // ← Estructura dentro de estructura
+    public Int32 sampleTime;
+    public Int32 shipped;
+}
+
+
+MANEJO DE STRINGS (LOGIX_STRING):
+---------------------------------
+
+[StructLayout(LayoutKind.Sequential)]
+public class LOGIX_STRING
+{
+    public Int32 stringLength;           // Longitud actual
+    public Byte[] stringData = new Byte[82];  // 82 bytes por defecto
+
+    public override String ToString()
+    {
+        return ASCIIEncoding.ASCII.GetString(stringData, 0, stringLength);
+    }
+
+    public void SetString(String s)
+    {
+        Buffer.BlockCopy(ASCIIEncoding.ASCII.GetBytes(s), 0, stringData, 0, s.Length);
+        stringLength = s.Length;
+    }
+}
+
+
+================================================================================
+                    EJEMPLO 3: MENSAJES NO SOLICITADOS
+================================================================================
+                         (Proyecto: UnsolMsg/ABLogix)
+
+Recibe mensajes MSG enviados desde el PLC a tu aplicación.
+
+CÓDIGO BÁSICO:
+--------------
+
+// Crear objeto de mensaje no solicitado
+var um = new ABLogix.Net.UnsolicitedMessage();
+
+// Suscribirse a eventos
+um.WriteReceived += (sender, e) => {
+    Console.WriteLine("Mensaje recibido de: " + e.IPSender);
+    Console.WriteLine("Tag: " + e.HwTagName);
+    Console.WriteLine("Valores: " + string.Join(",", e.GetValues()));
+};
+
+um.Error += (sender, e) => {
+    Console.WriteLine("Error: " + e.Message);
+};
+
+// Abrir puerto para escuchar (IP local o IPAddress.Any)
+um.OpenPort(IPAddress.Any);
+
+// ... tu aplicación sigue corriendo ...
+
+// Al cerrar
+um.ClosePort();
+
+
+RECIBIR ESTRUCTURAS EN MENSAJES:
+--------------------------------
+
+// Pre-definir encodings (una vez, por eficiencia)
+var encSTRUCT_A = new ABLogix.Data.StructEncoding<STRUCT_A>();
+
+um.WriteReceived += (sender, e) => {
+    if (e.StructTypeHint == "STRUCT_A")
+    {
+        var valores = e.GetStructuredValues<STRUCT_A>(encSTRUCT_A);
+        foreach (var v in valores)
+        {
+            Console.WriteLine(v.travel + ", " + v.wear);
+        }
+    }
+};
+
+
+================================================================================
+                         TABLA DE TIPOS DE DATOS
+================================================================================
+
+    Tipo PLC     │  Tipo C#      │  Bytes
+    ─────────────┼───────────────┼─────────
+    BOOL         │  Boolean      │  4 (en UDT)
+    SINT         │  Byte/SByte   │  1
+    INT          │  Int16        │  2
+    DINT         │  Int32        │  4
+    LINT         │  Int64        │  8
+    REAL         │  Single/float │  4
+    LREAL        │  Double       │  8
+    STRING       │  LOGIX_STRING │  88 (4+82+2)
+
+
+================================================================================
+                           MANEJO DE ERRORES
+================================================================================
+
+// Suscribirse a eventos de error
+channel.Error += (s, e) => Console.WriteLine("Channel Error: " + e.Message);
+device.Error += (s, e) => Console.WriteLine("Device Error: " + e.Message);
+item.Error += (s, e) => Console.WriteLine("Item Error: " + e.Message);
+
+// Try-catch en operaciones
+try
+{
+    item.Read();
+}
+catch (Exception ex)
+{
+    Console.WriteLine("Error: " + ex.Message);
+    Console.WriteLine("Calidad: " + item.Quality);  // GOOD, BAD, UNCERTAIN
+}
+
+
+================================================================================
+                           CIERRE ORDENADO
+================================================================================
+
+SIEMPRE llamar a Dispose() al cerrar:
+
+// Desuscribir eventos
+channel.Error -= Channel_Error;
+device.Error -= Device_Error;
+item.Error -= Item_Error;
+item.DataChanged -= Item_DataChanged;
+
+// Disponer el canal
+channel.Dispose();  // ← IMPORTANTE: cierra conexiones y threads
+
+
+================================================================================
+                              RESUMEN RÁPIDO
+================================================================================
+
+PRIMITIVOS:
+    item.Read();
+    var valor = item.Values[0];
+    item.Write(new object[] { nuevoValor });
+
+ESTRUCTURAS:
+    var miStruct = new MiClaseUDT();
+    item.Read();
+    item.GetStructuredValues(miStruct);
+    item.Write(miStruct);
+
+POLLING:
+    group.Active = true;
+    item.DataChanged += MiHandler;
+
+MENSAJES NO SOLICITADOS:
+    um.OpenPort(IPAddress.Any);
+    um.WriteReceived += MiHandler;
+
+================================================================================
+                         Automated Solutions - ASComm IoT
+                    https://automatedsolutions.com/products/iot/ascommiot/
+================================================================================
+

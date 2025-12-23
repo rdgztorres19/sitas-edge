@@ -1,0 +1,15 @@
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Sitas.Edge/src/Sitas.Edge.Core/obj/Release/net8.0/Sitas.Edge.Core.csproj.AssemblyReference.cache
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Sitas.Edge/src/Sitas.Edge.Core/obj/Release/net8.0/Sitas.Edge.Core.GeneratedMSBuildEditorConfig.editorconfig
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Sitas.Edge/src/Sitas.Edge.Core/obj/Release/net8.0/Sitas.Edge.Core.AssemblyInfoInputs.cache
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Sitas.Edge/src/Sitas.Edge.Core/obj/Release/net8.0/Sitas.Edge.Core.AssemblyInfo.cs
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Sitas.Edge/src/Sitas.Edge.Core/obj/Release/net8.0/Sitas.Edge.Core.csproj.CoreCompileInputs.cache
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Sitas.Edge/src/Sitas.Edge.Core/obj/Release/net8.0/Sitas.Edge.Core.sourcelink.json
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Sitas.Edge/src/Sitas.Edge.Core/bin/Release/net8.0/Sitas.Edge.Core.deps.json
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Sitas.Edge/src/Sitas.Edge.Core/bin/Release/net8.0/Sitas.Edge.Core.dll
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Sitas.Edge/src/Sitas.Edge.Core/bin/Release/net8.0/Sitas.Edge.Core.pdb
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Sitas.Edge/src/Sitas.Edge.Core/bin/Release/net8.0/Sitas.Edge.Core.xml
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Sitas.Edge/src/Sitas.Edge.Core/obj/Release/net8.0/Sitas.Edge.Core.dll
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Sitas.Edge/src/Sitas.Edge.Core/obj/Release/net8.0/refint/Sitas.Edge.Core.dll
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Sitas.Edge/src/Sitas.Edge.Core/obj/Release/net8.0/Sitas.Edge.Core.xml
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Sitas.Edge/src/Sitas.Edge.Core/obj/Release/net8.0/Sitas.Edge.Core.pdb
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Sitas.Edge/src/Sitas.Edge.Core/obj/Release/net8.0/ref/Sitas.Edge.Core.dll

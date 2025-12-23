@@ -1,0 +1,90 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    
+    <!-- NuGet Package Info -->
+    <PackageId>Sitas.Edge.EdgePlcDriver</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Sitas Team</Authors>
+    <Description>Edge PLC Driver for Sitas.Edge - Allen-Bradley/ControlLogix PLC communication with attribute-based tag subscription discovery. Provides clean abstraction layer for industrial edge computing scenarios.</Description>
+    <PackageTags>servicebus;plc;controllogix;allen-bradley;edge;industrial;sitas;edge-computing</PackageTags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    
+    <!-- 
+      ASComm IoT Library Configuration
+      ================================
+      This package requires ASComm IoT from Automated Solutions.
+      
+      Option 1: NuGet Package (if available)
+        Uncomment the PackageReference below
+        
+      Option 2: Local DLL Reference (default installation)
+        The library is typically installed to:
+        - Windows: C:\Program Files\Automated Solutions\ASComm IoT 1.4 Developer\
+        - Windows Machine: C:\Program Files\Automated Solutions\ASComm IoT 1.4 Machine\
+        - macOS/Linux: Set ASCommPath environment variable or use Option 3
+        
+      Option 3: Project-local DLL (recommended for macOS/Linux)
+        Copy AutomatedSolutions.ASCommStd.dll to a 'lib' folder in your solution
+        and uncomment the reference below.
+      
+      Purchase license: https://automatedsolutions.com/products/iot/ascommiot/
+    -->
+    <!-- Windows paths -->
+    <ASCommPath Condition="'$(ASCommPath)' == '' AND Exists('C:\Program Files\Automated Solutions\ASComm IoT 1.4 Developer')">C:\Program Files\Automated Solutions\ASComm IoT 1.4 Developer</ASCommPath>
+    <ASCommPath Condition="'$(ASCommPath)' == '' AND Exists('C:\Program Files\Automated Solutions\ASComm IoT 1.4 Machine')">C:\Program Files\Automated Solutions\ASComm IoT 1.4 Machine</ASCommPath>
+    <!-- macOS paths (if installed) -->
+    <ASCommPath Condition="'$(ASCommPath)' == '' AND Exists('/Applications/ASComm IoT 1.4 Developer')">/Applications/ASComm IoT 1.4 Developer</ASCommPath>
+    <ASCommPath Condition="'$(ASCommPath)' == '' AND Exists('$(HOME)/Applications/ASComm IoT 1.4 Developer')">$(HOME)/Applications/ASComm IoT 1.4 Developer</ASCommPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 
+      ASComm IoT Library References
+      =============================
+      Choose ONE of the following options:
+      
+      IMPORTANT: For macOS/Linux, copy AutomatedSolutions.ASCommStd.dll to:
+        Sitas.Edge/lib/AutomatedSolutions.ASCommStd.dll
+      Then uncomment Option 3 below.
+    -->
+    
+    <!-- Option 1: NuGet Package (if available) -->
+    <!-- <PackageReference Include="AutomatedSolutions.ASCommStd" Version="1.4.*" /> -->
+    
+    <!-- Option 2: Local DLL Reference (Windows - using installed ASComm IoT) -->
+    <Reference Include="AutomatedSolutions.ASCommStd" Condition="'$(ASCommPath)' != '' AND '$(OS)' == 'Windows_NT'">
+      <HintPath>$(ASCommPath)\AutomatedSolutions.ASCommStd.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    
+    <!-- Option 2b: Local DLL Reference (macOS/Linux - using installed ASComm IoT) -->
+    <Reference Include="AutomatedSolutions.ASCommStd" Condition="'$(ASCommPath)' != '' AND '$(OS)' != 'Windows_NT'">
+      <HintPath>$(ASCommPath)/AutomatedSolutions.ASCommStd.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    
+    <!-- 
+      Option 3: Project-local DLL (RECOMMENDED for macOS/Linux)
+      Copy AutomatedSolutions.ASCommStd.dll to Sitas.Edge/lib/ folder
+      Path from Sitas.Edge/src/Sitas.Edge.EdgePlcDriver/ to Sitas.Edge/lib/ is ../../lib/
+    -->
+    <Reference Include="AutomatedSolutions.ASCommStd" Condition="Exists('$(MSBuildThisFileDirectory)..\..\lib\AutomatedSolutions.ASCommStd.dll')">
+      <HintPath>$(MSBuildThisFileDirectory)..\..\lib\AutomatedSolutions.ASCommStd.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="AutomatedSolutions.ASCommStd" Condition="Exists('$(MSBuildThisFileDirectory)../../lib/AutomatedSolutions.ASCommStd.dll')">
+      <HintPath>$(MSBuildThisFileDirectory)../../lib/AutomatedSolutions.ASCommStd.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sitas.Edge.Core\Sitas.Edge.Core.csproj" />
+  </ItemGroup>
+
+</Project>

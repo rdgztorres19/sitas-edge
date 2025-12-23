@@ -1,0 +1,1490 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Conduit.EdgePlcDriver</name>
+    </assembly>
+    <members>
+        <member name="T:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverReadAttribute">
+            <summary>
+            Specifies a PLC tag to read when an event is triggered.
+            The tag is read ONCE when the event is emitted, not continuously polled.
+            </summary>
+            <remarks>
+            Use this attribute on event handlers (classes with [Event] attribute) to automatically
+            read PLC tags before the handler is invoked. The values are available in TagReadResults.
+            </remarks>
+            <example>
+            <code>
+            [Event("GetMachineStatus")]
+            [EdgePlcDriverRead("plc1", "Machine_Status")]
+            [EdgePlcDriverRead("plc1", "Temperature", typeof(float))]
+            public class GetMachineStatusHandler : IEventHandler&lt;MachineRequest&gt;
+            {
+                public Task HandleAsync(MachineRequest request, TagReadResults tags, CancellationToken ct)
+                {
+                    var status = tags.Get&lt;MachineStatusUdt&gt;("Machine_Status");
+                    var temp = tags.Get&lt;float&gt;("Temperature");
+                    // ...
+                }
+            }
+            </code>
+            </example>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverReadAttribute.Elements">
+            <summary>
+            Gets or sets the number of array elements to read.
+            Only applicable for array tags. Default is 1.
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverReadAttribute.#ctor(System.String,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverReadAttribute"/> class.
+            </summary>
+            <param name="connectionName">The name of the PLC driver (e.g., "plc1").</param>
+            <param name="tagName">The name of the PLC tag to read.</param>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverReadAttribute.#ctor(System.String,System.String,System.Type)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverReadAttribute"/> class
+            with an explicit value type.
+            </summary>
+            <param name="connectionName">The name of the PLC driver (e.g., "plc1").</param>
+            <param name="tagName">The name of the PLC tag to read.</param>
+            <param name="valueType">The expected type of the tag value.</param>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.Attributes.TagSubscriptionMode">
+            <summary>
+            Subscription mode for PLC tag monitoring.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Attributes.TagSubscriptionMode.Polling">
+            <summary>
+            Polling mode: Tag value is read at regular intervals (default).
+            More CPU efficient for the PLC, suitable for most scenarios.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Attributes.TagSubscriptionMode.Unsolicited">
+            <summary>
+            Unsolicited mode: PLC pushes value changes immediately.
+            Lower latency but higher PLC overhead. Requires PLC support.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverSubscribeAttribute">
+            <summary>
+            Marks a message handler class to subscribe to PLC tag changes via Edge PLC Driver.
+            Multiple attributes can be applied to subscribe to multiple tags.
+            </summary>
+            <remarks>
+            Tag Name Examples:
+            - "MyTag" - Simple tag in controller scope
+            - "Program:MainProgram.MyTag" - Program-scoped tag
+            - "MyArray[0]" - Array element
+            - "MyUDT.Member" - UDT member access
+            </remarks>
+            <example>
+            <code>
+            [EdgePlcDriverSubscribe("plc1", "Sensor_Temperature", pollingIntervalMs: 100)]
+            public class TemperatureHandler : IMessageSubscriptionHandler&lt;TagValue&lt;float&gt;&gt;
+            {
+                public async Task HandleAsync(TagValue&lt;float&gt; message, IMessageContext context, CancellationToken ct)
+                {
+                    Console.WriteLine($"Temperature: {message.Value}");
+                    
+                    // Write back to PLC if needed
+                    await context.Publisher.PublishAsync("Setpoint_Temperature", 75.5f, ct);
+                }
+            }
+            </code>
+            </example>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverSubscribeAttribute.PollingIntervalMs">
+            <summary>
+            Gets or sets the polling interval in milliseconds for this specific tag.
+            If not set, uses the connection's default polling interval.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverSubscribeAttribute.DataType">
+            <summary>
+            Gets or sets the Edge PLC Driver data type for the tag.
+            If not specified, the type is inferred from the message type.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverSubscribeAttribute.OnChangeOnly">
+            <summary>
+            Gets or sets whether to trigger handler only on value change (true) 
+            or on every poll cycle (false).
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverSubscribeAttribute.Deadband">
+            <summary>
+            Gets or sets the deadband for analog values.
+            Handler is only triggered if value changes by more than this amount.
+            Only applicable when OnChangeOnly is true.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverSubscribeAttribute.Mode">
+            <summary>
+            Gets or sets the subscription mode (Polling or Unsolicited).
+            Polling (default): Tag is read at regular intervals.
+            Unsolicited: PLC pushes value changes immediately (lower latency, higher PLC overhead).
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverSubscribeAttribute.#ctor(System.String,System.String,System.Int32,Conduit.EdgePlcDriver.Attributes.TagSubscriptionMode)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverSubscribeAttribute"/> class.
+            </summary>
+            <param name="connectionName">
+            The name of the Edge PLC Driver to use. Must match a configured driver name.
+            </param>
+            <param name="tagName">
+            The PLC tag name to subscribe to.
+            </param>
+            <param name="pollingIntervalMs">
+            Optional polling interval in milliseconds. Uses driver default if not specified.
+            </param>
+            <param name="mode">
+            Subscription mode: Polling (default) or Unsolicited.
+            </param>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverDataType">
+            <summary>
+            Edge PLC Driver data types for PLC tags.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverDataType.Auto">
+            <summary>
+            Automatically infer type from the handler's message type.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverDataType.BOOL">
+            <summary>
+            Boolean (BOOL) - 1 bit
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverDataType.SINT">
+            <summary>
+            Signed 8-bit integer (SINT)
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverDataType.INT">
+            <summary>
+            Signed 16-bit integer (INT)
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverDataType.DINT">
+            <summary>
+            Signed 32-bit integer (DINT)
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverDataType.LINT">
+            <summary>
+            Signed 64-bit integer (LINT)
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverDataType.USINT">
+            <summary>
+            Unsigned 8-bit integer (USINT)
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverDataType.UINT">
+            <summary>
+            Unsigned 16-bit integer (UINT)
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverDataType.UDINT">
+            <summary>
+            Unsigned 32-bit integer (UDINT)
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverDataType.ULINT">
+            <summary>
+            Unsigned 64-bit integer (ULINT)
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverDataType.REAL">
+            <summary>
+            32-bit floating point (REAL)
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverDataType.LREAL">
+            <summary>
+            64-bit floating point (LREAL)
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverDataType.STRING">
+            <summary>
+            String
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Attributes.EdgePlcDriverDataType.UDT">
+            <summary>
+            User-Defined Type (structure)
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.ConduitBuilderEdgePlcDriverExtensions">
+            <summary>
+            Extension methods for adding Edge PLC Driver connections to ConduitBuilder.
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.ConduitBuilderEdgePlcDriverExtensions.AddEdgePlcDriver(Conduit.Core.ConduitBuilder,System.Action{Conduit.EdgePlcDriver.IEdgePlcDriverBuilder})">
+            <summary>
+            Adds an Edge PLC Driver connection to the Conduit builder.
+            </summary>
+            <example>
+            <code>
+            var conduit = ConduitBuilder.Create()
+                .WithServiceProvider(serviceProvider)
+                .AddEdgePlcDriver(plc => plc
+                    .WithConnectionName("plc1")
+                    .WithPlc("192.168.1.10", cpuSlot: 0)
+                    .WithDefaultPollingInterval(100)
+                    .WithHandlersFromEntryAssembly())
+                .Build();
+            </code>
+            </example>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.ConduitBuilderEdgePlcDriverExtensions.AddEdgePlcDriver(Conduit.Core.ConduitBuilder,System.String,System.Action{Conduit.EdgePlcDriver.IEdgePlcDriverBuilder})">
+            <summary>
+            Adds an Edge PLC Driver connection with a specific connection name.
+            </summary>
+            <param name="builder">The Conduit builder.</param>
+            <param name="connectionName">The logical name for this driver.</param>
+            <param name="configure">Configuration action for the driver.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.ConduitBuilderEdgePlcDriverExtensions.AddEdgePlcDriver(Conduit.Core.ConduitBuilder,System.String,System.String,System.Int32,System.Int32)">
+            <summary>
+            Adds an Edge PLC Driver connection with minimal configuration.
+            </summary>
+            <param name="builder">The Conduit builder.</param>
+            <param name="connectionName">The logical name for this driver.</param>
+            <param name="ipAddress">The IP address of the PLC.</param>
+            <param name="cpuSlot">The CPU slot number (default 0).</param>
+            <param name="pollingIntervalMs">Default polling interval in milliseconds (default 100).</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.Configuration.EdgePlcDriverOptions">
+            <summary>
+            Configuration options for an Edge PLC Driver connection.
+            </summary>
+            <remarks>
+            Supports Allen-Bradley PLC families:
+            - ControlLogix
+            - CompactLogix  
+            - GuardPLC
+            - SoftLogix
+            - Micro800
+            </remarks>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Configuration.EdgePlcDriverOptions.ConnectionName">
+            <summary>
+            Gets or sets the logical name of this driver.
+            Used to match handlers decorated with [EdgePlcDriverSubscribe] to this driver.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Configuration.EdgePlcDriverOptions.IpAddress">
+            <summary>
+            Gets or sets the IP address of the PLC or ENET/ENBT module.
+            </summary>
+            <example>192.168.1.10</example>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Configuration.EdgePlcDriverOptions.CpuSlot">
+            <summary>
+            Gets or sets the slot number of the CPU in the backplane.
+            Default is 0 (typically the leftmost slot).
+            </summary>
+            <remarks>
+            For CompactLogix, this is typically 0.
+            For ControlLogix, this depends on your chassis configuration.
+            </remarks>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Configuration.EdgePlcDriverOptions.Backplane">
+            <summary>
+            Gets or sets the backplane number.
+            Default is 1 (standard for most configurations).
+            </summary>
+            <remarks>
+            Port 1 = Backplane
+            Port 2 = Ethernet module
+            </remarks>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Configuration.EdgePlcDriverOptions.Model">
+            <summary>
+            Gets or sets the PLC model type.
+            Default is ControlLogix which works for most Logix PLCs.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Configuration.EdgePlcDriverOptions.DefaultPollingIntervalMs">
+            <summary>
+            Gets or sets the default polling interval in milliseconds for active tag groups.
+            Can be overridden per-subscription via attributes.
+            </summary>
+            <remarks>
+            Recommended values:
+            - 50-100ms for fast-changing process data
+            - 500-1000ms for slow-changing status data
+            - 1000-5000ms for configuration/diagnostics
+            </remarks>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Configuration.EdgePlcDriverOptions.ConnectionTimeoutSeconds">
+            <summary>
+            Gets or sets the connection timeout in seconds.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Configuration.EdgePlcDriverOptions.TransactionTimeoutSeconds">
+            <summary>
+            Gets or sets the transaction timeout in seconds.
+            Applied to read/write operations.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Configuration.EdgePlcDriverOptions.AutoReconnect">
+            <summary>
+            Gets or sets whether to automatically reconnect on connection loss.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Configuration.EdgePlcDriverOptions.MaxReconnectDelaySeconds">
+            <summary>
+            Gets or sets the maximum delay between reconnection attempts in seconds.
+            Uses exponential backoff starting from 1 second.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Configuration.EdgePlcDriverOptions.SimulateMode">
+            <summary>
+            Gets or sets whether to enable simulation mode.
+            When true, no actual PLC communication occurs.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Configuration.EdgePlcDriverOptions.NotifyOnRemoteDisconnect">
+            <summary>
+            Gets or sets whether to notify on remote disconnect.
+            When true, the connection will fire events if the PLC closes the connection.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Configuration.EdgePlcDriverOptions.RoutePath">
+            <summary>
+            Gets the route path in ASComm IoT format: "IP,Backplane,Slot"
+            </summary>
+            <remarks>
+            Example: "192.168.1.10,1,0" means:
+            - Connect to 192.168.1.10
+            - Through backplane 1 (port 1)
+            - To CPU in slot 0
+            </remarks>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.Configuration.PlcModel">
+            <summary>
+            Allen-Bradley PLC model types supported by Edge PLC Driver (via ASComm IoT library).
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Configuration.PlcModel.ControlLogix">
+            <summary>
+            ControlLogix and CompactLogix PLCs (default).
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Configuration.PlcModel.Micro800">
+            <summary>
+            Micro800 series PLCs (Micro820, Micro830, Micro850, Micro870, Micro880).
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Configuration.PlcModel.SoftLogix">
+            <summary>
+            SoftLogix emulator.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Configuration.PlcModel.GuardPLC">
+            <summary>
+            GuardPLC safety controller.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.ExampleUdtTemplates">
+            <summary>
+            Example UDT classes showing how to define structures for PLC communication.
+            Copy and modify these examples for your own UDT definitions.
+            </summary>
+            <remarks>
+            IMPORTANT RULES FOR UDT CLASSES:
+            1. MUST use [StructLayout(LayoutKind.Sequential)] attribute
+            2. MUST use public FIELDS (not properties)
+            3. Fields MUST be in the EXACT ORDER as the PLC UDT definition
+            4. Initialize arrays and nested types in the field declaration
+            5. Use correct .NET types that map to Logix types
+            </remarks>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.MachineStatusUdt">
+            <summary>
+            Example: Simple UDT with primitive types.
+            
+            RSLogix/Studio 5000 UDT Definition:
+            Name: MACHINE_STATUS
+            Members:
+              running     BOOL    Decimal
+              faulted     BOOL    Decimal
+              speed       REAL    Float
+              count       DINT    Decimal
+              errorCode   INT     Decimal
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.MachineStatusUdt.running">
+            <summary>
+            Indicates if the machine is currently running.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.MachineStatusUdt.faulted">
+            <summary>
+            Indicates if the machine is in a faulted state.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.MachineStatusUdt.speed">
+            <summary>
+            Current speed of the machine.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.MachineStatusUdt.count">
+            <summary>
+            Production count value.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.MachineStatusUdt.errorCode">
+            <summary>
+            Error code if the machine is faulted.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.HourlyDataUdt">
+            <summary>
+            Example: UDT with arrays.
+            
+            RSLogix/Studio 5000 UDT Definition:
+            Name: HOURLY_DATA
+            Members:
+              active       BOOL        Decimal
+              hourlyCount  INT[24]     Decimal
+              totalRate    REAL        Float
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.HourlyDataUdt.active">
+            <summary>
+            Indicates if hourly data collection is active.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.HourlyDataUdt.hourlyCount">
+            <summary>
+            Array of 24 hourly count values. Array MUST be initialized.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.HourlyDataUdt.totalRate">
+            <summary>
+            Total production rate.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.ProductInfoUdt">
+            <summary>
+            Example: UDT with STRING type.
+            
+            RSLogix/Studio 5000 UDT Definition:
+            Name: PRODUCT_INFO
+            Members:
+              productCode  STRING    
+              batchNumber  DINT      Decimal
+              weight       REAL      Float
+              description  STRING    
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.ProductInfoUdt.productCode">
+            <summary>
+            Product code string. STRING must be initialized.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.ProductInfoUdt.batchNumber">
+            <summary>
+            Batch number for this product.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.ProductInfoUdt.weight">
+            <summary>
+            Weight of the product.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.ProductInfoUdt.description">
+            <summary>
+            Product description string. STRING must be initialized.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.WorkCellUdt">
+            <summary>
+            Example: Nested UDTs (UDT containing another UDT).
+            
+            RSLogix/Studio 5000 UDT Definition:
+            Name: WORK_CELL
+            Members:
+              cellId        DINT           Decimal
+              machine1      MACHINE_STATUS
+              machine2      MACHINE_STATUS
+              totalOutput   DINT           Decimal
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.WorkCellUdt.cellId">
+            <summary>
+            Unique identifier for this work cell.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.WorkCellUdt.machine1">
+            <summary>
+            Status of machine 1. Nested UDT must be initialized.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.WorkCellUdt.machine2">
+            <summary>
+            Status of machine 2. Nested UDT must be initialized.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.WorkCellUdt.totalOutput">
+            <summary>
+            Total output from this work cell.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.ProductionLineUdt">
+            <summary>
+            Example: UDT with array of UDTs.
+            
+            RSLogix/Studio 5000 UDT Definition:
+            Name: PRODUCTION_LINE
+            Members:
+              lineId        STRING
+              cells         WORK_CELL[4]
+              efficiency    REAL          Float
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.ProductionLineUdt.lineId">
+            <summary>
+            Production line identifier string.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.ProductionLineUdt.cells">
+            <summary>
+            Array of work cells. Array of UDTs - MUST initialize each element.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.ProductionLineUdt.efficiency">
+            <summary>
+            Overall efficiency of the production line.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.SampleDataUdt">
+            <summary>
+            Example: UDT matching a sample active data structure.
+            Shows complex nested structures with multiple levels.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.SampleDataUdt.sampleId">
+            <summary>
+            Unique identifier for this sample.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.SampleDataUdt.sampledOn">
+            <summary>
+            Timestamp when the sample was taken.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.SampleDataUdt.sampledBy">
+            <summary>
+            Identifier of who or what took the sample.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.PositionDataUdt">
+            <summary>
+            Example: Position data structure.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.PositionDataUdt.xLocMm">
+            <summary>
+            X coordinate location in millimeters.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.PositionDataUdt.yLocMm">
+            <summary>
+            Y coordinate location in millimeters.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.PositionDataUdt.zLocMm">
+            <summary>
+            Z coordinate location in millimeters.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.PositionDataUdt.thetaLocDeg">
+            <summary>
+            Theta angle location in degrees.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.AnalysisResultUdt">
+            <summary>
+            Example: Analysis result structure.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.AnalysisResultUdt.measurementStatus">
+            <summary>
+            Status code of the measurement.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.AnalysisResultUdt.result">
+            <summary>
+            Result value of the analysis.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.CompleteSampleUdt">
+            <summary>
+            Example: Complete sample with position and analysis.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.CompleteSampleUdt.site">
+            <summary>
+            Site identifier where the sample was taken.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.CompleteSampleUdt.lotNumber">
+            <summary>
+            Lot number for this sample.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.CompleteSampleUdt.position">
+            <summary>
+            Position data where the sample was taken.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.CompleteSampleUdt.analysis">
+            <summary>
+            Analysis results for this sample.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.LogixDataTypes">
+            <summary>
+            Provides utilities for working with Logix data types.
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.DataTypes.LogixDataTypes.GetDotNetType(Conduit.EdgePlcDriver.DataTypes.LogixTagType)">
+            <summary>
+            Maps .NET types to their Logix PLC equivalents.
+            </summary>
+            <remarks>
+            Type mapping table:
+            - BOOL → Boolean (4 bytes in UDT context)
+            - SINT → SByte (1 byte)
+            - INT → Int16 (2 bytes)
+            - DINT → Int32 (4 bytes)
+            - LINT → Int64 (8 bytes)
+            - USINT → Byte (1 byte)
+            - UINT → UInt16 (2 bytes)
+            - UDINT → UInt32 (4 bytes)
+            - ULINT → UInt64 (8 bytes)
+            - REAL → Single/float (4 bytes)
+            - LREAL → Double (8 bytes)
+            - STRING → LogixString (88 bytes default)
+            </remarks>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.DataTypes.LogixDataTypes.GetLogixType(System.Type)">
+            <summary>
+            Gets the Logix tag type from a .NET type.
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.DataTypes.LogixDataTypes.GetTypeSize(Conduit.EdgePlcDriver.DataTypes.LogixTagType)">
+            <summary>
+            Gets the size in bytes of a Logix data type.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.LogixTagType">
+            <summary>
+            Logix PLC data types.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixTagType.Unknown">
+            <summary>Unknown or auto-detect type.</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixTagType.BOOL">
+            <summary>Boolean (BOOL) - 1 bit, but 4 bytes in UDT.</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixTagType.SINT">
+            <summary>Signed 8-bit integer (SINT).</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixTagType.INT">
+            <summary>Signed 16-bit integer (INT).</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixTagType.DINT">
+            <summary>Signed 32-bit integer (DINT).</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixTagType.LINT">
+            <summary>Signed 64-bit integer (LINT).</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixTagType.USINT">
+            <summary>Unsigned 8-bit integer (USINT).</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixTagType.UINT">
+            <summary>Unsigned 16-bit integer (UINT).</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixTagType.UDINT">
+            <summary>Unsigned 32-bit integer (UDINT).</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixTagType.ULINT">
+            <summary>Unsigned 64-bit integer (ULINT).</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixTagType.REAL">
+            <summary>32-bit floating point (REAL).</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixTagType.LREAL">
+            <summary>64-bit floating point (LREAL).</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixTagType.STRING">
+            <summary>String type.</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixTagType.UDT">
+            <summary>User-Defined Type (structure).</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixTagType.PDT">
+            <summary>Pre-Defined Type (built-in structure like TIMER, COUNTER, PID).</summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.LogixUdtBase">
+            <summary>
+            Base class for User-Defined Types (UDTs) with proper structure layout.
+            Inherit from this class and apply [StructLayout(LayoutKind.Sequential)] attribute.
+            </summary>
+            <remarks>
+            Guidelines for creating UDT classes:
+            1. The class MUST be decorated with [StructLayout(LayoutKind.Sequential)]
+            2. Use PUBLIC FIELDS (not properties) for UDT members
+            3. Fields must be in the EXACT ORDER as defined in the RSLogix/Studio 5000 UDT
+            4. Use the correct .NET types that map to Logix types (see LogixDataTypes)
+            5. Initialize array fields and nested UDT fields in the declaration
+            
+            Example:
+            <code>
+            [StructLayout(LayoutKind.Sequential)]
+            public class MyUDT
+            {
+                public Boolean enabled;           // BOOL
+                public Int32 count;               // DINT
+                public Single temperature;        // REAL
+                public Int16[] hourlyData = new Int16[24];  // INT[24]
+                public LogixString description = new();     // STRING
+            }
+            </code>
+            </remarks>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.LogixTimer">
+            <summary>
+            TIMER predefined type structure.
+            Equivalent to the TIMER type in Allen-Bradley PLCs.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixTimer.PRE">
+            <summary>Preset value in milliseconds.</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixTimer.ACC">
+            <summary>Accumulated value in milliseconds.</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixTimer.EN">
+            <summary>Timer enable bit.</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixTimer.TT">
+            <summary>Timer timing bit.</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixTimer.DN">
+            <summary>Timer done bit.</summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.LogixCounter">
+            <summary>
+            COUNTER predefined type structure.
+            Equivalent to the COUNTER type in Allen-Bradley PLCs.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixCounter.PRE">
+            <summary>Preset value.</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixCounter.ACC">
+            <summary>Accumulated value.</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixCounter.CU">
+            <summary>Count up enable bit.</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixCounter.CD">
+            <summary>Count down enable bit.</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixCounter.DN">
+            <summary>Done bit.</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixCounter.OV">
+            <summary>Overflow bit.</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixCounter.UN">
+            <summary>Underflow bit.</summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.LogixControl">
+            <summary>
+            CONTROL predefined type structure.
+            Used for array instructions (FSC, SQO, SQI, etc.).
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixControl.LEN">
+            <summary>Length of the array.</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixControl.POS">
+            <summary>Current position.</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixControl.EN">
+            <summary>Enable bit.</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixControl.DN">
+            <summary>Done bit.</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixControl.ER">
+            <summary>Error bit.</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixControl.UL">
+            <summary>Unload bit.</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixControl.IN">
+            <summary>Inhibit bit.</summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixControl.FD">
+            <summary>Found bit.</summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.LogixString">
+            <summary>
+            Represents a Logix STRING type for PLC communication.
+            Equivalent to the native STRING type in Allen-Bradley PLCs.
+            </summary>
+            <remarks>
+            The LOGIX_STRING structure consists of:
+            - 4 bytes (Int32) for string length
+            - 82 bytes for string data (default capacity)
+            - 2 bytes padding (total 88 bytes)
+            
+            This class must use [StructLayout(LayoutKind.Sequential)] and public fields
+            to work correctly with ASComm's GetStructuredValues/Write methods.
+            </remarks>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixString.stringLength">
+            <summary>
+            The actual length of the string (not the capacity).
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixString.stringData">
+            <summary>
+            The string data buffer. Default capacity is 82 bytes.
+            Change the array dimension for custom string types in RSLogix.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.DataTypes.LogixString.Capacity">
+            <summary>
+            Gets the maximum capacity of this string in characters.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.DataTypes.LogixString.Value">
+            <summary>
+            Gets or sets the string value.
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.DataTypes.LogixString.#ctor">
+            <summary>
+            Creates a new empty LogixString with default capacity (82 bytes).
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.DataTypes.LogixString.#ctor(System.Int32)">
+            <summary>
+            Creates a new LogixString with a specified capacity.
+            </summary>
+            <param name="capacity">The maximum string length in bytes.</param>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.DataTypes.LogixString.#ctor(System.String)">
+            <summary>
+            Creates a new LogixString initialized with a value.
+            </summary>
+            <param name="value">The initial string value.</param>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.DataTypes.LogixString.ToString">
+            <summary>
+            Returns the string value of this LOGIX_STRING.
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.DataTypes.LogixString.SetString(System.String)">
+            <summary>
+            Sets the string value.
+            </summary>
+            <param name="value">The string value to set.</param>
+            <exception cref="T:System.ArgumentOutOfRangeException">
+            Thrown when the string length exceeds the buffer capacity.
+            </exception>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.DataTypes.LogixString.op_Implicit(Conduit.EdgePlcDriver.DataTypes.LogixString)~System.String">
+            <summary>
+            Implicit conversion from LogixString to string.
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.DataTypes.LogixString.op_Implicit(System.String)~Conduit.EdgePlcDriver.DataTypes.LogixString">
+            <summary>
+            Implicit conversion from string to LogixString.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.LogixString`1">
+            <summary>
+            Represents a custom-length Logix STRING type.
+            Use this for STRING types with non-standard capacity defined in RSLogix.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixString`1.stringLength">
+            <summary>
+            The actual length of the string.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.DataTypes.LogixString`1.stringData">
+            <summary>
+            The string data buffer.
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.DataTypes.LogixString`1.#ctor">
+            <summary>
+            Creates a new LogixString with the capacity defined by TCapacity.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.DataTypes.LogixString`1.Value">
+            <summary>
+            Gets or sets the string value.
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.DataTypes.LogixString`1.ToString">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.DataTypes.LogixString`1.SetString(System.String)">
+            <summary>
+            Sets the string value.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.ILogixStringCapacity">
+            <summary>
+            Interface for defining custom string capacities.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.DataTypes.ILogixStringCapacity.Capacity">
+            <summary>
+            Gets the capacity in bytes.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.StringCapacity82">
+            <summary>
+            Standard 82-byte string capacity.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.DataTypes.StringCapacity82.Capacity">
+            <summary>
+            Gets the capacity in bytes (82).
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.StringCapacity256">
+            <summary>
+            256-byte string capacity.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.DataTypes.StringCapacity256.Capacity">
+            <summary>
+            Gets the capacity in bytes (256).
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.DataTypes.StringCapacity512">
+            <summary>
+            512-byte string capacity.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.DataTypes.StringCapacity512.Capacity">
+            <summary>
+            Gets the capacity in bytes (512).
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.EdgePlcDriver">
+            <summary>
+            Edge PLC Driver implementation for Allen-Bradley/ControlLogix PLCs.
+            Provides high-level abstractions for PLC communication using ASComm IoT library from Automated Solutions.
+            </summary>
+            <remarks>
+            Supports:
+            - ControlLogix, CompactLogix, GuardPLC, SoftLogix, Micro800 families
+            - Primitive types (BOOL, INT, DINT, REAL, etc.)
+            - User-Defined Types (UDTs/structures)
+            - Arrays and string types
+            - Polling and DataChanged event subscriptions
+            </remarks>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.EdgePlcDriverBuilder">
+            <summary>
+            Builder for configuring and creating Edge PLC Driver connections.
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.EdgePlcDriverBuilder.Create">
+            <summary>
+            Creates a new Edge PLC Driver builder.
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.EdgePlcDriverBuilder.WithConnectionName(System.String)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.EdgePlcDriverBuilder.WithPlc(System.String,System.Int32,System.Int32)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.EdgePlcDriverBuilder.WithDefaultPollingInterval(System.Int32)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.EdgePlcDriverBuilder.WithConnectionTimeout(System.Int32)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.EdgePlcDriverBuilder.WithAutoReconnect(System.Boolean,System.Int32)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.EdgePlcDriverBuilder.WithSerializer(Conduit.Core.Abstractions.IMessageSerializer)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.EdgePlcDriverBuilder.WithHandlerActivator(Conduit.Core.Abstractions.IHandlerActivator)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.EdgePlcDriverBuilder.WithLoggerFactory(Microsoft.Extensions.Logging.ILoggerFactory)">
+            <summary>
+            Configures the logger factory for logging.
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.EdgePlcDriverBuilder.WithHandlersFromAssemblies(System.Reflection.Assembly[])">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.EdgePlcDriverBuilder.WithHandlersFromEntryAssembly">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.EdgePlcDriverBuilder.WithOptions(Conduit.EdgePlcDriver.Configuration.EdgePlcDriverOptions)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.EdgePlcDriverBuilder.Build">
+            <summary>
+            Builds the Edge PLC Driver with the configured options.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.EdgePlcDriverPublisher">
+            <summary>
+            Publisher implementation for writing tags to PLCs via Edge PLC Driver.
+            </summary>
+            <remarks>
+            Supports writing:
+            - Primitive values (BOOL, INT, DINT, REAL, etc.)
+            - Arrays
+            - User-Defined Types (UDTs/structures)
+            </remarks>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.EdgePlcDriverPublisher.SetChannel(AutomatedSolutions.ASCommStd.AB.Logix.Net.Channel)">
+            <summary>
+            Sets the ASComm IoT channel for direct writes.
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.EdgePlcDriverPublisher.SetDevice(AutomatedSolutions.ASCommStd.AB.Logix.Device)">
+            <summary>
+            Sets the ASComm IoT device for direct writes.
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.EdgePlcDriverPublisher.SetWriteFunction(System.Func{System.String,System.Object,System.Threading.CancellationToken,System.Threading.Tasks.Task})">
+            <summary>
+            Sets the write function (injected by EdgePlcDriver after initialization).
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.EdgePlcDriverPublisher.WriteStructuredTagAsync``1(System.String,``0,System.Threading.CancellationToken)">
+            <summary>
+            Writes a UDT/structure value to a tag.
+            </summary>
+            <typeparam name="T">The UDT class type (must have [StructLayout(LayoutKind.Sequential)]).</typeparam>
+            <param name="tagName">The tag name in the PLC.</param>
+            <param name="structValue">The structured value to write.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.EdgePlcDriverPublisher.WriteArrayAsync``1(System.String,``0[],System.Threading.CancellationToken)">
+            <summary>
+            Writes an array of values to a tag.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.Events.EdgePlcDriverEventContext">
+            <summary>
+            Event context implementation for Edge PLC Driver connections.
+            Provides read and write access to PLC tags during event handling.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Events.EdgePlcDriverEventContext.EventName">
+            <inheritdoc/>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Events.EdgePlcDriverEventContext.Timestamp">
+            <inheritdoc/>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Events.EdgePlcDriverEventContext.CorrelationId">
+            <inheritdoc/>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Events.EdgePlcDriverEventContext.ConnectionName">
+            <inheritdoc/>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Events.EdgePlcDriverEventContext.Metadata">
+            <inheritdoc/>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.Events.EdgePlcDriverEventContext.#ctor(System.String,Conduit.EdgePlcDriver.IEdgePlcDriver)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Conduit.EdgePlcDriver.Events.EdgePlcDriverEventContext"/> class.
+            </summary>
+            <param name="eventName">The name of the event.</param>
+            <param name="connection">The Edge PLC Driver connection.</param>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.Events.EdgePlcDriverEventContext.SetMetadata(System.String,System.Object)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.Events.EdgePlcDriverEventContext.ReadTagAsync``1(System.String,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.Events.EdgePlcDriverEventContext.WriteTagAsync``1(System.String,``0,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.Events.EdgePlcDriverEventContext.ReadTagsAsync(System.Collections.Generic.IEnumerable{System.String},System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.Events.EdgePlcDriverTagReader">
+            <summary>
+            Tag reader implementation for Edge PLC Driver connections.
+            Used by the EventMediator to read tags specified in [EdgePlcDriverRead] attributes.
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.Events.EdgePlcDriverTagReader.#ctor(Conduit.EdgePlcDriver.IEdgePlcDriver)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Conduit.EdgePlcDriver.Events.EdgePlcDriverTagReader"/> class.
+            </summary>
+            <param name="connection">The Edge PLC Driver connection to use for reading.</param>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.Events.EdgePlcDriverTagReader.ReadTagAsync(System.String,System.Type,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.IEdgePlcDriver">
+            <summary>
+            Represents an Edge PLC Driver for communicating with Allen-Bradley ControlLogix PLCs.
+            Provides high-level abstractions for read, write, and subscription operations.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.IEdgePlcDriver.Publisher">
+            <summary>
+            Gets the Edge PLC Driver-specific publisher for writing tags to the PLC.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.IEdgePlcDriver.IpAddress">
+            <summary>
+            Gets the IP address of the connected PLC.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.IEdgePlcDriver.RoutePath">
+            <summary>
+            Gets the route path to the PLC (IP,Backplane,Slot format).
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.IEdgePlcDriver.ReadTagAsync``1(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Reads a tag value from the PLC.
+            </summary>
+            <typeparam name="T">The expected type of the tag value.</typeparam>
+            <param name="tagName">The name of the tag to read.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>The tag value with metadata.</returns>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.IEdgePlcDriver.ReadTagsAsync(System.Collections.Generic.IEnumerable{System.String},System.Threading.CancellationToken)">
+            <summary>
+            Reads multiple tag values from the PLC in a single operation.
+            </summary>
+            <param name="tagNames">The names of the tags to read.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>A dictionary of tag names to their values.</returns>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.IEdgePlcDriver.ReadTagsAsync``1(System.Collections.Generic.IEnumerable{System.String},System.Threading.CancellationToken)">
+            <summary>
+            Reads multiple tag values of the same type from the PLC in a single operation.
+            This overload provides type-safety when all tags are known to be the same type.
+            </summary>
+            <typeparam name="T">The expected type of all tag values.</typeparam>
+            <param name="tagNames">The names of the tags to read.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>A dictionary of tag names to their strongly-typed values.</returns>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.IEdgePlcDriver.WriteTagAsync``1(System.String,``0,System.Threading.CancellationToken)">
+            <summary>
+            Writes a value to a PLC tag.
+            </summary>
+            <typeparam name="T">The type of the value to write.</typeparam>
+            <param name="tagName">The name of the tag to write.</param>
+            <param name="value">The value to write.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.IEdgePlcDriver.WriteTagsAsync(System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.Threading.CancellationToken)">
+            <summary>
+            Writes multiple tag values to the PLC in a single operation.
+            </summary>
+            <param name="tagValues">Dictionary of tag names to values.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.IEdgePlcDriver.SubscribeAsync``1(System.String,System.Func{Conduit.EdgePlcDriver.Messages.TagValue{``0},Conduit.EdgePlcDriver.IEdgePlcDriverMessageContext,System.Threading.CancellationToken,System.Threading.Tasks.Task},System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Dynamically subscribes to tag changes.
+            </summary>
+            <typeparam name="T">The expected type of the tag value.</typeparam>
+            <param name="tagName">The tag name to subscribe to.</param>
+            <param name="handler">The handler to invoke when the tag value changes.</param>
+            <param name="pollingIntervalMs">Polling interval in milliseconds.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>A disposable subscription that can be used to unsubscribe.</returns>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.IEdgePlcDriverPublisher">
+            <summary>
+            Edge PLC Driver-specific publisher for writing tags to PLCs.
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.IEdgePlcDriverPublisher.WriteTagAsync``1(System.String,``0,System.Threading.CancellationToken)">
+            <summary>
+            Writes a value to a PLC tag.
+            </summary>
+            <typeparam name="T">The type of the value.</typeparam>
+            <param name="tagName">The tag name (used as topic).</param>
+            <param name="value">The value to write.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.IEdgePlcDriverPublisher.WriteTagsAsync(System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.Threading.CancellationToken)">
+            <summary>
+            Writes multiple tags in a single operation.
+            </summary>
+            <param name="tagValues">Dictionary of tag names to values.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.IEdgePlcDriverMessageContext">
+            <summary>
+            Extended message context for Edge PLC Driver with PLC-specific operations.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.IEdgePlcDriverMessageContext.TagName">
+            <summary>
+            Gets the tag name that triggered this message.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.IEdgePlcDriverMessageContext.Publisher">
+            <summary>
+            Gets the Edge PLC Driver-specific publisher for writing back to the PLC.
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.IEdgePlcDriverMessageContext.WriteTagAsync``1(System.String,``0,System.Threading.CancellationToken)">
+            <summary>
+            Writes a value back to a PLC tag.
+            Convenience method that uses the connection's publisher.
+            </summary>
+            <typeparam name="T">The type of the value.</typeparam>
+            <param name="tagName">The tag name to write to.</param>
+            <param name="value">The value to write.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.IEdgePlcDriverMessageContext.ReadTagAsync``1(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Reads a value from a PLC tag.
+            </summary>
+            <typeparam name="T">The expected type of the value.</typeparam>
+            <param name="tagName">The tag name to read.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.IEdgePlcDriverBuilder">
+            <summary>
+            Builder interface for configuring Edge PLC Driver connections.
+            </summary>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.IEdgePlcDriverBuilder.WithConnectionName(System.String)">
+            <summary>
+            Sets the logical name for this driver.
+            Used to match handlers decorated with [EdgePlcDriverSubscribe] to this driver.
+            </summary>
+            <param name="name">The driver name.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.IEdgePlcDriverBuilder.WithPlc(System.String,System.Int32,System.Int32)">
+            <summary>
+            Configures the PLC endpoint.
+            </summary>
+            <param name="ipAddress">The IP address of the PLC or ENET/ENBT module.</param>
+            <param name="cpuSlot">The slot number of the CPU. Default is 0.</param>
+            <param name="backplane">The backplane number. Default is 1.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.IEdgePlcDriverBuilder.WithDefaultPollingInterval(System.Int32)">
+            <summary>
+            Sets the default polling interval for tag subscriptions.
+            </summary>
+            <param name="intervalMs">Polling interval in milliseconds.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.IEdgePlcDriverBuilder.WithConnectionTimeout(System.Int32)">
+            <summary>
+            Configures connection timeout.
+            </summary>
+            <param name="timeoutSeconds">Timeout in seconds.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.IEdgePlcDriverBuilder.WithAutoReconnect(System.Boolean,System.Int32)">
+            <summary>
+            Configures automatic reconnection behavior.
+            </summary>
+            <param name="enabled">Whether to enable auto-reconnect.</param>
+            <param name="maxDelaySeconds">Maximum delay between reconnection attempts.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.IEdgePlcDriverBuilder.WithSerializer(Conduit.Core.Abstractions.IMessageSerializer)">
+            <summary>
+            Configures a custom message serializer for UDT handling.
+            </summary>
+            <param name="serializer">The serializer to use.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.IEdgePlcDriverBuilder.WithLoggerFactory(Microsoft.Extensions.Logging.ILoggerFactory)">
+            <summary>
+            Configures the logger factory for internal logging.
+            </summary>
+            <param name="loggerFactory">The logger factory to use.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.IEdgePlcDriverBuilder.WithHandlerActivator(Conduit.Core.Abstractions.IHandlerActivator)">
+            <summary>
+            Configures the handler activator for dependency injection.
+            </summary>
+            <param name="activator">The handler activator.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.IEdgePlcDriverBuilder.WithHandlersFromAssemblies(System.Reflection.Assembly[])">
+            <summary>
+            Discovers and registers message handlers from the specified assemblies.
+            Handlers must be decorated with [EdgePlcDriverSubscribe] attribute.
+            </summary>
+            <param name="assemblies">The assemblies to scan for handlers.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.IEdgePlcDriverBuilder.WithHandlersFromEntryAssembly">
+            <summary>
+            Discovers and registers message handlers from the entry assembly.
+            </summary>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.EdgePlcDriver.IEdgePlcDriverBuilder.WithOptions(Conduit.EdgePlcDriver.Configuration.EdgePlcDriverOptions)">
+            <summary>
+            Applies configuration from an options object.
+            </summary>
+            <param name="options">The driver options.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.Internal.EdgePlcDriverMessageContext">
+            <summary>
+            Edge PLC Driver-specific message context implementation.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.Internal.TagSubscription">
+            <summary>
+            Represents a dynamic tag subscription that can be disposed to unsubscribe.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.Internal.TagHandler">
+            <summary>
+            Internal representation of a tag subscription handler.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.Internal.TagHandlerRegistration">
+            <summary>
+            Registration info for attribute-discovered handlers.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.Messages.TagValue`1">
+            <summary>
+            Represents a PLC tag value with metadata.
+            </summary>
+            <typeparam name="T">The type of the tag value.</typeparam>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Messages.TagValue`1.TagName">
+            <summary>
+            Gets or sets the tag name.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Messages.TagValue`1.Value">
+            <summary>
+            Gets or sets the current value of the tag.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Messages.TagValue`1.PreviousValue">
+            <summary>
+            Gets or sets the previous value of the tag (if available).
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Messages.TagValue`1.Timestamp">
+            <summary>
+            Gets or sets the timestamp when the value was read from the PLC.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Messages.TagValue`1.Quality">
+            <summary>
+            Gets or sets the quality of the tag value.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Messages.TagValue`1.IsInitialRead">
+            <summary>
+            Gets a value indicating whether this is the first read (no previous value).
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Messages.TagValue`1.HasChanged">
+            <summary>
+            Gets a value indicating whether the value has changed from the previous read.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.Messages.TagValueBase">
+            <summary>
+            Non-generic base class for tag values.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Messages.TagValueBase.TagName">
+            <summary>
+            Gets or sets the tag name.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Messages.TagValueBase.Timestamp">
+            <summary>
+            Gets or sets the timestamp when the value was read from the PLC.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Messages.TagValueBase.Quality">
+            <summary>
+            Gets or sets the quality of the tag value.
+            </summary>
+        </member>
+        <member name="P:Conduit.EdgePlcDriver.Messages.TagValueBase.RawValue">
+            <summary>
+            Gets the value as an object.
+            </summary>
+        </member>
+        <member name="T:Conduit.EdgePlcDriver.Messages.TagQuality">
+            <summary>
+            Quality indicator for tag values.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Messages.TagQuality.Good">
+            <summary>
+            Value is good and reliable.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Messages.TagQuality.Uncertain">
+            <summary>
+            Value quality is uncertain.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Messages.TagQuality.Bad">
+            <summary>
+            Value is bad or unavailable.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Messages.TagQuality.CommError">
+            <summary>
+            Communication error occurred.
+            </summary>
+        </member>
+        <member name="F:Conduit.EdgePlcDriver.Messages.TagQuality.NotFound">
+            <summary>
+            Tag was not found in the PLC.
+            </summary>
+        </member>
+    </members>
+</doc>

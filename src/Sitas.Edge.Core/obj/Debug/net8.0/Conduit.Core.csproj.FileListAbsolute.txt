@@ -1,0 +1,15 @@
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Conduit/src/Conduit.Core/bin/Debug/net8.0/Conduit.Core.deps.json
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Conduit/src/Conduit.Core/bin/Debug/net8.0/Conduit.Core.dll
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Conduit/src/Conduit.Core/bin/Debug/net8.0/Conduit.Core.pdb
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Conduit/src/Conduit.Core/bin/Debug/net8.0/Conduit.Core.xml
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Conduit/src/Conduit.Core/obj/Debug/net8.0/Conduit.Core.csproj.AssemblyReference.cache
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Conduit/src/Conduit.Core/obj/Debug/net8.0/Conduit.Core.GeneratedMSBuildEditorConfig.editorconfig
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Conduit/src/Conduit.Core/obj/Debug/net8.0/Conduit.Core.AssemblyInfoInputs.cache
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Conduit/src/Conduit.Core/obj/Debug/net8.0/Conduit.Core.AssemblyInfo.cs
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Conduit/src/Conduit.Core/obj/Debug/net8.0/Conduit.Core.csproj.CoreCompileInputs.cache
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Conduit/src/Conduit.Core/obj/Debug/net8.0/Conduit.Core.dll
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Conduit/src/Conduit.Core/obj/Debug/net8.0/refint/Conduit.Core.dll
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Conduit/src/Conduit.Core/obj/Debug/net8.0/Conduit.Core.xml
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Conduit/src/Conduit.Core/obj/Debug/net8.0/Conduit.Core.pdb
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Conduit/src/Conduit.Core/obj/Debug/net8.0/ref/Conduit.Core.dll
+/Users/rdgztorres19/Documents/Projects/MyWebApi/Conduit/src/Conduit.Core/obj/Debug/net8.0/Conduit.Core.sourcelink.json

@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "dgSpecHash": "HHtOOJWSsAo=",
+  "success": true,
+  "projectFilePath": "/Users/rdgztorres19/Documents/Projects/MyWebApi/Sitas.Edge/src/Sitas.Edge.DependencyInjection/Sitas.Edge.DependencyInjection.csproj",
+  "expectedPackageFiles": [
+    "/Users/rdgztorres19/.nuget/packages/microsoft.extensions.configuration.abstractions/8.0.0/microsoft.extensions.configuration.abstractions.8.0.0.nupkg.sha512",
+    "/Users/rdgztorres19/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/8.0.0/microsoft.extensions.dependencyinjection.abstractions.8.0.0.nupkg.sha512",
+    "/Users/rdgztorres19/.nuget/packages/microsoft.extensions.diagnostics.abstractions/8.0.0/microsoft.extensions.diagnostics.abstractions.8.0.0.nupkg.sha512",
+    "/Users/rdgztorres19/.nuget/packages/microsoft.extensions.fileproviders.abstractions/8.0.0/microsoft.extensions.fileproviders.abstractions.8.0.0.nupkg.sha512",
+    "/Users/rdgztorres19/.nuget/packages/microsoft.extensions.hosting.abstractions/8.0.0/microsoft.extensions.hosting.abstractions.8.0.0.nupkg.sha512",
+    "/Users/rdgztorres19/.nuget/packages/microsoft.extensions.logging.abstractions/8.0.0/microsoft.extensions.logging.abstractions.8.0.0.nupkg.sha512",
+    "/Users/rdgztorres19/.nuget/packages/microsoft.extensions.options/8.0.0/microsoft.extensions.options.8.0.0.nupkg.sha512",
+    "/Users/rdgztorres19/.nuget/packages/microsoft.extensions.primitives/8.0.0/microsoft.extensions.primitives.8.0.0.nupkg.sha512",
+    "/Users/rdgztorres19/.nuget/packages/mqttnet/4.3.7.1207/mqttnet.4.3.7.1207.nupkg.sha512",
+    "/Users/rdgztorres19/.nuget/packages/system.diagnostics.diagnosticsource/8.0.0/system.diagnostics.diagnosticsource.8.0.0.nupkg.sha512",
+    "/Users/rdgztorres19/.nuget/packages/system.text.json/8.0.5/system.text.json.8.0.5.nupkg.sha512",
+    "/Users/rdgztorres19/.nuget/packages/microsoft.netcore.app.ref/8.0.21/microsoft.netcore.app.ref.8.0.21.nupkg.sha512",
+    "/Users/rdgztorres19/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.21/microsoft.aspnetcore.app.ref.8.0.21.nupkg.sha512"
+  ],
+  "logs": []
+}

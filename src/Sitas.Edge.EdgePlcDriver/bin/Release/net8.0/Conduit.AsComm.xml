@@ -1,0 +1,1489 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Conduit.AsComm</name>
+    </assembly>
+    <members>
+        <member name="T:Conduit.AsComm.AsCommClientBuilder">
+            <summary>
+            Builder for configuring and creating ASComm PLC connections.
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.AsCommClientBuilder.Create">
+            <summary>
+            Creates a new ASComm client builder.
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.AsCommClientBuilder.WithConnectionName(System.String)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.AsComm.AsCommClientBuilder.WithPlc(System.String,System.Int32,System.Int32)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.AsComm.AsCommClientBuilder.WithDefaultPollingInterval(System.Int32)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.AsComm.AsCommClientBuilder.WithConnectionTimeout(System.Int32)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.AsComm.AsCommClientBuilder.WithAutoReconnect(System.Boolean,System.Int32)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.AsComm.AsCommClientBuilder.WithSerializer(Conduit.Core.Abstractions.IMessageSerializer)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.AsComm.AsCommClientBuilder.WithHandlerActivator(Conduit.Core.Abstractions.IHandlerActivator)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.AsComm.AsCommClientBuilder.WithLoggerFactory(Microsoft.Extensions.Logging.ILoggerFactory)">
+            <summary>
+            Configures the logger factory for logging.
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.AsCommClientBuilder.WithHandlersFromAssemblies(System.Reflection.Assembly[])">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.AsComm.AsCommClientBuilder.WithHandlersFromEntryAssembly">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.AsComm.AsCommClientBuilder.WithOptions(Conduit.AsComm.Configuration.AsCommConnectionOptions)">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.AsComm.AsCommClientBuilder.Build">
+            <summary>
+            Builds the ASComm connection with the configured options.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.AsCommConnection">
+            <summary>
+            ASComm connection implementation for Allen-Bradley/ControlLogix PLCs.
+            Uses ASComm IoT library from Automated Solutions.
+            </summary>
+            <remarks>
+            Supports:
+            - ControlLogix, CompactLogix, GuardPLC, SoftLogix, Micro800 families
+            - Primitive types (BOOL, INT, DINT, REAL, etc.)
+            - User-Defined Types (UDTs/structures)
+            - Arrays and string types
+            - Polling and DataChanged event subscriptions
+            </remarks>
+        </member>
+        <member name="T:Conduit.AsComm.AsCommPublisher">
+            <summary>
+            Publisher implementation for writing tags to PLCs via ASComm.
+            </summary>
+            <remarks>
+            Supports writing:
+            - Primitive values (BOOL, INT, DINT, REAL, etc.)
+            - Arrays
+            - User-Defined Types (UDTs/structures)
+            </remarks>
+        </member>
+        <member name="M:Conduit.AsComm.AsCommPublisher.SetChannel(AutomatedSolutions.ASCommStd.AB.Logix.Net.Channel)">
+            <summary>
+            Sets the ASComm channel for direct writes.
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.AsCommPublisher.SetDevice(AutomatedSolutions.ASCommStd.AB.Logix.Device)">
+            <summary>
+            Sets the ASComm device for direct writes.
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.AsCommPublisher.SetWriteFunction(System.Func{System.String,System.Object,System.Threading.CancellationToken,System.Threading.Tasks.Task})">
+            <summary>
+            Sets the write function (injected by AsCommConnection after initialization).
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.AsCommPublisher.WriteStructuredTagAsync``1(System.String,``0,System.Threading.CancellationToken)">
+            <summary>
+            Writes a UDT/structure value to a tag.
+            </summary>
+            <typeparam name="T">The UDT class type (must have [StructLayout(LayoutKind.Sequential)]).</typeparam>
+            <param name="tagName">The tag name in the PLC.</param>
+            <param name="structValue">The structured value to write.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:Conduit.AsComm.AsCommPublisher.WriteArrayAsync``1(System.String,``0[],System.Threading.CancellationToken)">
+            <summary>
+            Writes an array of values to a tag.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.Attributes.AsCommReadAttribute">
+            <summary>
+            Specifies a PLC tag to read when an event is triggered.
+            The tag is read ONCE when the event is emitted, not continuously polled.
+            </summary>
+            <remarks>
+            Use this attribute on event handlers (classes with [Event] attribute) to automatically
+            read PLC tags before the handler is invoked. The values are available in TagReadResults.
+            </remarks>
+            <example>
+            <code>
+            [Event("GetMachineStatus")]
+            [AsCommRead("plc1", "Machine_Status")]
+            [AsCommRead("plc1", "Temperature", typeof(float))]
+            public class GetMachineStatusHandler : IEventHandler&lt;MachineRequest&gt;
+            {
+                public Task HandleAsync(MachineRequest request, TagReadResults tags, IEventContext context, CancellationToken ct)
+                {
+                    var status = tags.Get&lt;MachineStatusUdt&gt;("Machine_Status");
+                    var temp = tags.Get&lt;float&gt;("Temperature");
+                    // ...
+                }
+            }
+            </code>
+            </example>
+        </member>
+        <member name="P:Conduit.AsComm.Attributes.AsCommReadAttribute.Elements">
+            <summary>
+            Gets or sets the number of array elements to read.
+            Only applicable for array tags. Default is 1.
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.Attributes.AsCommReadAttribute.#ctor(System.String,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Conduit.AsComm.Attributes.AsCommReadAttribute"/> class.
+            </summary>
+            <param name="connectionName">The name of the PLC connection (e.g., "plc1").</param>
+            <param name="tagName">The name of the PLC tag to read.</param>
+        </member>
+        <member name="M:Conduit.AsComm.Attributes.AsCommReadAttribute.#ctor(System.String,System.String,System.Type)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Conduit.AsComm.Attributes.AsCommReadAttribute"/> class
+            with an explicit value type.
+            </summary>
+            <param name="connectionName">The name of the PLC connection (e.g., "plc1").</param>
+            <param name="tagName">The name of the PLC tag to read.</param>
+            <param name="valueType">The expected type of the tag value.</param>
+        </member>
+        <member name="T:Conduit.AsComm.Attributes.TagSubscriptionMode">
+            <summary>
+            Subscription mode for PLC tag monitoring.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Attributes.TagSubscriptionMode.Polling">
+            <summary>
+            Polling mode: Tag value is read at regular intervals (default).
+            More CPU efficient for the PLC, suitable for most scenarios.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Attributes.TagSubscriptionMode.Unsolicited">
+            <summary>
+            Unsolicited mode: PLC pushes value changes immediately.
+            Lower latency but higher PLC overhead. Requires PLC support.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.Attributes.AsCommSubscribeAttribute">
+            <summary>
+            Marks a message handler class to subscribe to PLC tag changes via ASComm.
+            Multiple attributes can be applied to subscribe to multiple tags.
+            </summary>
+            <remarks>
+            Tag Name Examples:
+            - "MyTag" - Simple tag in controller scope
+            - "Program:MainProgram.MyTag" - Program-scoped tag
+            - "MyArray[0]" - Array element
+            - "MyUDT.Member" - UDT member access
+            </remarks>
+            <example>
+            <code>
+            [AsCommSubscribe("plc1", "Sensor_Temperature", pollingIntervalMs: 100)]
+            public class TemperatureHandler : IMessageHandler&lt;TagValue&lt;float&gt;&gt;
+            {
+                public async Task HandleAsync(TagValue&lt;float&gt; message, IMessageContext context, CancellationToken ct)
+                {
+                    Console.WriteLine($"Temperature: {message.Value}");
+                    
+                    // Write back to PLC if needed
+                    await context.Publisher.PublishAsync("Setpoint_Temperature", 75.5f, ct);
+                }
+            }
+            </code>
+            </example>
+        </member>
+        <member name="P:Conduit.AsComm.Attributes.AsCommSubscribeAttribute.PollingIntervalMs">
+            <summary>
+            Gets or sets the polling interval in milliseconds for this specific tag.
+            If not set, uses the connection's default polling interval.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Attributes.AsCommSubscribeAttribute.DataType">
+            <summary>
+            Gets or sets the ASComm data type for the tag.
+            If not specified, the type is inferred from the message type.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Attributes.AsCommSubscribeAttribute.OnChangeOnly">
+            <summary>
+            Gets or sets whether to trigger handler only on value change (true) 
+            or on every poll cycle (false).
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Attributes.AsCommSubscribeAttribute.Deadband">
+            <summary>
+            Gets or sets the deadband for analog values.
+            Handler is only triggered if value changes by more than this amount.
+            Only applicable when OnChangeOnly is true.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Attributes.AsCommSubscribeAttribute.Mode">
+            <summary>
+            Gets or sets the subscription mode (Polling or Unsolicited).
+            Polling (default): Tag is read at regular intervals.
+            Unsolicited: PLC pushes value changes immediately (lower latency, higher PLC overhead).
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.Attributes.AsCommSubscribeAttribute.#ctor(System.String,System.String,System.Int32,Conduit.AsComm.Attributes.TagSubscriptionMode)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Conduit.AsComm.Attributes.AsCommSubscribeAttribute"/> class.
+            </summary>
+            <param name="connectionName">
+            The name of the ASComm connection to use. Must match a configured connection name.
+            </param>
+            <param name="tagName">
+            The PLC tag name to subscribe to.
+            </param>
+            <param name="pollingIntervalMs">
+            Optional polling interval in milliseconds. Uses connection default if not specified.
+            </param>
+            <param name="mode">
+            Subscription mode: Polling (default) or Unsolicited.
+            </param>
+        </member>
+        <member name="T:Conduit.AsComm.Attributes.AsCommDataType">
+            <summary>
+            ASComm data types for PLC tags.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Attributes.AsCommDataType.Auto">
+            <summary>
+            Automatically infer type from the handler's message type.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Attributes.AsCommDataType.BOOL">
+            <summary>
+            Boolean (BOOL) - 1 bit
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Attributes.AsCommDataType.SINT">
+            <summary>
+            Signed 8-bit integer (SINT)
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Attributes.AsCommDataType.INT">
+            <summary>
+            Signed 16-bit integer (INT)
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Attributes.AsCommDataType.DINT">
+            <summary>
+            Signed 32-bit integer (DINT)
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Attributes.AsCommDataType.LINT">
+            <summary>
+            Signed 64-bit integer (LINT)
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Attributes.AsCommDataType.USINT">
+            <summary>
+            Unsigned 8-bit integer (USINT)
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Attributes.AsCommDataType.UINT">
+            <summary>
+            Unsigned 16-bit integer (UINT)
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Attributes.AsCommDataType.UDINT">
+            <summary>
+            Unsigned 32-bit integer (UDINT)
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Attributes.AsCommDataType.ULINT">
+            <summary>
+            Unsigned 64-bit integer (ULINT)
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Attributes.AsCommDataType.REAL">
+            <summary>
+            32-bit floating point (REAL)
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Attributes.AsCommDataType.LREAL">
+            <summary>
+            64-bit floating point (LREAL)
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Attributes.AsCommDataType.STRING">
+            <summary>
+            String
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Attributes.AsCommDataType.UDT">
+            <summary>
+            User-Defined Type (structure)
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.ConduitBuilderAsCommExtensions">
+            <summary>
+            Extension methods for adding ASComm PLC connections to ConduitBuilder.
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.ConduitBuilderAsCommExtensions.AddAsCommConnection(Conduit.Core.ConduitBuilder,System.Action{Conduit.AsComm.IAsCommClientBuilder})">
+            <summary>
+            Adds an ASComm PLC connection to the Conduit builder.
+            </summary>
+            <example>
+            <code>
+            var conduit = ConduitBuilder.Create()
+                .WithServiceProvider(serviceProvider)
+                .AddAsCommConnection(plc => plc
+                    .WithConnectionName("plc1")
+                    .WithPlc("192.168.1.10", cpuSlot: 0)
+                    .WithDefaultPollingInterval(100)
+                    .WithHandlersFromEntryAssembly())
+                .Build();
+            </code>
+            </example>
+        </member>
+        <member name="M:Conduit.AsComm.ConduitBuilderAsCommExtensions.AddAsCommConnection(Conduit.Core.ConduitBuilder,System.String,System.Action{Conduit.AsComm.IAsCommClientBuilder})">
+            <summary>
+            Adds an ASComm PLC connection with a specific connection name.
+            </summary>
+            <param name="builder">The Conduit builder.</param>
+            <param name="connectionName">The logical name for this connection.</param>
+            <param name="configure">Configuration action for the connection.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.AsComm.ConduitBuilderAsCommExtensions.AddAsCommConnection(Conduit.Core.ConduitBuilder,System.String,System.String,System.Int32,System.Int32)">
+            <summary>
+            Adds an ASComm PLC connection with minimal configuration.
+            </summary>
+            <param name="builder">The Conduit builder.</param>
+            <param name="connectionName">The logical name for this connection.</param>
+            <param name="ipAddress">The IP address of the PLC.</param>
+            <param name="cpuSlot">The CPU slot number (default 0).</param>
+            <param name="pollingIntervalMs">Default polling interval in milliseconds (default 100).</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="T:Conduit.AsComm.Configuration.AsCommConnectionOptions">
+            <summary>
+            Configuration options for an ASComm PLC connection.
+            </summary>
+            <remarks>
+            Supports Allen-Bradley PLC families:
+            - ControlLogix
+            - CompactLogix  
+            - GuardPLC
+            - SoftLogix
+            - Micro800
+            </remarks>
+        </member>
+        <member name="P:Conduit.AsComm.Configuration.AsCommConnectionOptions.ConnectionName">
+            <summary>
+            Gets or sets the logical name of this connection.
+            Used to match handlers decorated with [AsCommSubscribe] to this connection.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Configuration.AsCommConnectionOptions.IpAddress">
+            <summary>
+            Gets or sets the IP address of the PLC or ENET/ENBT module.
+            </summary>
+            <example>192.168.1.10</example>
+        </member>
+        <member name="P:Conduit.AsComm.Configuration.AsCommConnectionOptions.CpuSlot">
+            <summary>
+            Gets or sets the slot number of the CPU in the backplane.
+            Default is 0 (typically the leftmost slot).
+            </summary>
+            <remarks>
+            For CompactLogix, this is typically 0.
+            For ControlLogix, this depends on your chassis configuration.
+            </remarks>
+        </member>
+        <member name="P:Conduit.AsComm.Configuration.AsCommConnectionOptions.Backplane">
+            <summary>
+            Gets or sets the backplane number.
+            Default is 1 (standard for most configurations).
+            </summary>
+            <remarks>
+            Port 1 = Backplane
+            Port 2 = Ethernet module
+            </remarks>
+        </member>
+        <member name="P:Conduit.AsComm.Configuration.AsCommConnectionOptions.Model">
+            <summary>
+            Gets or sets the PLC model type.
+            Default is ControlLogix which works for most Logix PLCs.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Configuration.AsCommConnectionOptions.DefaultPollingIntervalMs">
+            <summary>
+            Gets or sets the default polling interval in milliseconds for active tag groups.
+            Can be overridden per-subscription via attributes.
+            </summary>
+            <remarks>
+            Recommended values:
+            - 50-100ms for fast-changing process data
+            - 500-1000ms for slow-changing status data
+            - 1000-5000ms for configuration/diagnostics
+            </remarks>
+        </member>
+        <member name="P:Conduit.AsComm.Configuration.AsCommConnectionOptions.ConnectionTimeoutSeconds">
+            <summary>
+            Gets or sets the connection timeout in seconds.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Configuration.AsCommConnectionOptions.TransactionTimeoutSeconds">
+            <summary>
+            Gets or sets the transaction timeout in seconds.
+            Applied to read/write operations.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Configuration.AsCommConnectionOptions.AutoReconnect">
+            <summary>
+            Gets or sets whether to automatically reconnect on connection loss.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Configuration.AsCommConnectionOptions.MaxReconnectDelaySeconds">
+            <summary>
+            Gets or sets the maximum delay between reconnection attempts in seconds.
+            Uses exponential backoff starting from 1 second.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Configuration.AsCommConnectionOptions.SimulateMode">
+            <summary>
+            Gets or sets whether to enable simulation mode.
+            When true, no actual PLC communication occurs.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Configuration.AsCommConnectionOptions.NotifyOnRemoteDisconnect">
+            <summary>
+            Gets or sets whether to notify on remote disconnect.
+            When true, the connection will fire events if the PLC closes the connection.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Configuration.AsCommConnectionOptions.RoutePath">
+            <summary>
+            Gets the route path in ASComm format: "IP,Backplane,Slot"
+            </summary>
+            <remarks>
+            Example: "192.168.1.10,1,0" means:
+            - Connect to 192.168.1.10
+            - Through backplane 1 (port 1)
+            - To CPU in slot 0
+            </remarks>
+        </member>
+        <member name="T:Conduit.AsComm.Configuration.PlcModel">
+            <summary>
+            Allen-Bradley PLC model types supported by ASComm IoT.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Configuration.PlcModel.ControlLogix">
+            <summary>
+            ControlLogix and CompactLogix PLCs (default).
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Configuration.PlcModel.Micro800">
+            <summary>
+            Micro800 series PLCs (Micro820, Micro830, Micro850, Micro870, Micro880).
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Configuration.PlcModel.SoftLogix">
+            <summary>
+            SoftLogix emulator.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Configuration.PlcModel.GuardPLC">
+            <summary>
+            GuardPLC safety controller.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.ExampleUdtTemplates">
+            <summary>
+            Example UDT classes showing how to define structures for PLC communication.
+            Copy and modify these examples for your own UDT definitions.
+            </summary>
+            <remarks>
+            IMPORTANT RULES FOR UDT CLASSES:
+            1. MUST use [StructLayout(LayoutKind.Sequential)] attribute
+            2. MUST use public FIELDS (not properties)
+            3. Fields MUST be in the EXACT ORDER as the PLC UDT definition
+            4. Initialize arrays and nested types in the field declaration
+            5. Use correct .NET types that map to Logix types
+            </remarks>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.MachineStatusUdt">
+            <summary>
+            Example: Simple UDT with primitive types.
+            
+            RSLogix/Studio 5000 UDT Definition:
+            Name: MACHINE_STATUS
+            Members:
+              running     BOOL    Decimal
+              faulted     BOOL    Decimal
+              speed       REAL    Float
+              count       DINT    Decimal
+              errorCode   INT     Decimal
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.MachineStatusUdt.running">
+            <summary>
+            Indicates if the machine is currently running.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.MachineStatusUdt.faulted">
+            <summary>
+            Indicates if the machine is in a faulted state.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.MachineStatusUdt.speed">
+            <summary>
+            Current speed of the machine.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.MachineStatusUdt.count">
+            <summary>
+            Production count value.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.MachineStatusUdt.errorCode">
+            <summary>
+            Error code if the machine is faulted.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.HourlyDataUdt">
+            <summary>
+            Example: UDT with arrays.
+            
+            RSLogix/Studio 5000 UDT Definition:
+            Name: HOURLY_DATA
+            Members:
+              active       BOOL        Decimal
+              hourlyCount  INT[24]     Decimal
+              totalRate    REAL        Float
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.HourlyDataUdt.active">
+            <summary>
+            Indicates if hourly data collection is active.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.HourlyDataUdt.hourlyCount">
+            <summary>
+            Array of 24 hourly count values. Array MUST be initialized.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.HourlyDataUdt.totalRate">
+            <summary>
+            Total production rate.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.ProductInfoUdt">
+            <summary>
+            Example: UDT with STRING type.
+            
+            RSLogix/Studio 5000 UDT Definition:
+            Name: PRODUCT_INFO
+            Members:
+              productCode  STRING    
+              batchNumber  DINT      Decimal
+              weight       REAL      Float
+              description  STRING    
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.ProductInfoUdt.productCode">
+            <summary>
+            Product code string. STRING must be initialized.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.ProductInfoUdt.batchNumber">
+            <summary>
+            Batch number for this product.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.ProductInfoUdt.weight">
+            <summary>
+            Weight of the product.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.ProductInfoUdt.description">
+            <summary>
+            Product description string. STRING must be initialized.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.WorkCellUdt">
+            <summary>
+            Example: Nested UDTs (UDT containing another UDT).
+            
+            RSLogix/Studio 5000 UDT Definition:
+            Name: WORK_CELL
+            Members:
+              cellId        DINT           Decimal
+              machine1      MACHINE_STATUS
+              machine2      MACHINE_STATUS
+              totalOutput   DINT           Decimal
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.WorkCellUdt.cellId">
+            <summary>
+            Unique identifier for this work cell.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.WorkCellUdt.machine1">
+            <summary>
+            Status of machine 1. Nested UDT must be initialized.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.WorkCellUdt.machine2">
+            <summary>
+            Status of machine 2. Nested UDT must be initialized.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.WorkCellUdt.totalOutput">
+            <summary>
+            Total output from this work cell.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.ProductionLineUdt">
+            <summary>
+            Example: UDT with array of UDTs.
+            
+            RSLogix/Studio 5000 UDT Definition:
+            Name: PRODUCTION_LINE
+            Members:
+              lineId        STRING
+              cells         WORK_CELL[4]
+              efficiency    REAL          Float
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.ProductionLineUdt.lineId">
+            <summary>
+            Production line identifier string.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.ProductionLineUdt.cells">
+            <summary>
+            Array of work cells. Array of UDTs - MUST initialize each element.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.ProductionLineUdt.efficiency">
+            <summary>
+            Overall efficiency of the production line.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.SampleDataUdt">
+            <summary>
+            Example: UDT matching a sample active data structure.
+            Shows complex nested structures with multiple levels.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.SampleDataUdt.sampleId">
+            <summary>
+            Unique identifier for this sample.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.SampleDataUdt.sampledOn">
+            <summary>
+            Timestamp when the sample was taken.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.SampleDataUdt.sampledBy">
+            <summary>
+            Identifier of who or what took the sample.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.PositionDataUdt">
+            <summary>
+            Example: Position data structure.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.PositionDataUdt.xLocMm">
+            <summary>
+            X coordinate location in millimeters.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.PositionDataUdt.yLocMm">
+            <summary>
+            Y coordinate location in millimeters.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.PositionDataUdt.zLocMm">
+            <summary>
+            Z coordinate location in millimeters.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.PositionDataUdt.thetaLocDeg">
+            <summary>
+            Theta angle location in degrees.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.AnalysisResultUdt">
+            <summary>
+            Example: Analysis result structure.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.AnalysisResultUdt.measurementStatus">
+            <summary>
+            Status code of the measurement.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.AnalysisResultUdt.result">
+            <summary>
+            Result value of the analysis.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.CompleteSampleUdt">
+            <summary>
+            Example: Complete sample with position and analysis.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.CompleteSampleUdt.site">
+            <summary>
+            Site identifier where the sample was taken.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.CompleteSampleUdt.lotNumber">
+            <summary>
+            Lot number for this sample.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.CompleteSampleUdt.position">
+            <summary>
+            Position data where the sample was taken.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.CompleteSampleUdt.analysis">
+            <summary>
+            Analysis results for this sample.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.LogixDataTypes">
+            <summary>
+            Provides utilities for working with Logix data types.
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.DataTypes.LogixDataTypes.GetDotNetType(Conduit.AsComm.DataTypes.LogixTagType)">
+            <summary>
+            Maps .NET types to their Logix PLC equivalents.
+            </summary>
+            <remarks>
+            Type mapping table:
+            - BOOL → Boolean (4 bytes in UDT context)
+            - SINT → SByte (1 byte)
+            - INT → Int16 (2 bytes)
+            - DINT → Int32 (4 bytes)
+            - LINT → Int64 (8 bytes)
+            - USINT → Byte (1 byte)
+            - UINT → UInt16 (2 bytes)
+            - UDINT → UInt32 (4 bytes)
+            - ULINT → UInt64 (8 bytes)
+            - REAL → Single/float (4 bytes)
+            - LREAL → Double (8 bytes)
+            - STRING → LogixString (88 bytes default)
+            </remarks>
+        </member>
+        <member name="M:Conduit.AsComm.DataTypes.LogixDataTypes.GetLogixType(System.Type)">
+            <summary>
+            Gets the Logix tag type from a .NET type.
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.DataTypes.LogixDataTypes.GetTypeSize(Conduit.AsComm.DataTypes.LogixTagType)">
+            <summary>
+            Gets the size in bytes of a Logix data type.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.LogixTagType">
+            <summary>
+            Logix PLC data types.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixTagType.Unknown">
+            <summary>Unknown or auto-detect type.</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixTagType.BOOL">
+            <summary>Boolean (BOOL) - 1 bit, but 4 bytes in UDT.</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixTagType.SINT">
+            <summary>Signed 8-bit integer (SINT).</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixTagType.INT">
+            <summary>Signed 16-bit integer (INT).</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixTagType.DINT">
+            <summary>Signed 32-bit integer (DINT).</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixTagType.LINT">
+            <summary>Signed 64-bit integer (LINT).</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixTagType.USINT">
+            <summary>Unsigned 8-bit integer (USINT).</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixTagType.UINT">
+            <summary>Unsigned 16-bit integer (UINT).</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixTagType.UDINT">
+            <summary>Unsigned 32-bit integer (UDINT).</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixTagType.ULINT">
+            <summary>Unsigned 64-bit integer (ULINT).</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixTagType.REAL">
+            <summary>32-bit floating point (REAL).</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixTagType.LREAL">
+            <summary>64-bit floating point (LREAL).</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixTagType.STRING">
+            <summary>String type.</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixTagType.UDT">
+            <summary>User-Defined Type (structure).</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixTagType.PDT">
+            <summary>Pre-Defined Type (built-in structure like TIMER, COUNTER, PID).</summary>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.LogixUdtBase">
+            <summary>
+            Base class for User-Defined Types (UDTs) with proper structure layout.
+            Inherit from this class and apply [StructLayout(LayoutKind.Sequential)] attribute.
+            </summary>
+            <remarks>
+            Guidelines for creating UDT classes:
+            1. The class MUST be decorated with [StructLayout(LayoutKind.Sequential)]
+            2. Use PUBLIC FIELDS (not properties) for UDT members
+            3. Fields must be in the EXACT ORDER as defined in the RSLogix/Studio 5000 UDT
+            4. Use the correct .NET types that map to Logix types (see LogixDataTypes)
+            5. Initialize array fields and nested UDT fields in the declaration
+            
+            Example:
+            <code>
+            [StructLayout(LayoutKind.Sequential)]
+            public class MyUDT
+            {
+                public Boolean enabled;           // BOOL
+                public Int32 count;               // DINT
+                public Single temperature;        // REAL
+                public Int16[] hourlyData = new Int16[24];  // INT[24]
+                public LogixString description = new();     // STRING
+            }
+            </code>
+            </remarks>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.LogixTimer">
+            <summary>
+            TIMER predefined type structure.
+            Equivalent to the TIMER type in Allen-Bradley PLCs.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixTimer.PRE">
+            <summary>Preset value in milliseconds.</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixTimer.ACC">
+            <summary>Accumulated value in milliseconds.</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixTimer.EN">
+            <summary>Timer enable bit.</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixTimer.TT">
+            <summary>Timer timing bit.</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixTimer.DN">
+            <summary>Timer done bit.</summary>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.LogixCounter">
+            <summary>
+            COUNTER predefined type structure.
+            Equivalent to the COUNTER type in Allen-Bradley PLCs.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixCounter.PRE">
+            <summary>Preset value.</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixCounter.ACC">
+            <summary>Accumulated value.</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixCounter.CU">
+            <summary>Count up enable bit.</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixCounter.CD">
+            <summary>Count down enable bit.</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixCounter.DN">
+            <summary>Done bit.</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixCounter.OV">
+            <summary>Overflow bit.</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixCounter.UN">
+            <summary>Underflow bit.</summary>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.LogixControl">
+            <summary>
+            CONTROL predefined type structure.
+            Used for array instructions (FSC, SQO, SQI, etc.).
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixControl.LEN">
+            <summary>Length of the array.</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixControl.POS">
+            <summary>Current position.</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixControl.EN">
+            <summary>Enable bit.</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixControl.DN">
+            <summary>Done bit.</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixControl.ER">
+            <summary>Error bit.</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixControl.UL">
+            <summary>Unload bit.</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixControl.IN">
+            <summary>Inhibit bit.</summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixControl.FD">
+            <summary>Found bit.</summary>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.LogixString">
+            <summary>
+            Represents a Logix STRING type for PLC communication.
+            Equivalent to the native STRING type in Allen-Bradley PLCs.
+            </summary>
+            <remarks>
+            The LOGIX_STRING structure consists of:
+            - 4 bytes (Int32) for string length
+            - 82 bytes for string data (default capacity)
+            - 2 bytes padding (total 88 bytes)
+            
+            This class must use [StructLayout(LayoutKind.Sequential)] and public fields
+            to work correctly with ASComm's GetStructuredValues/Write methods.
+            </remarks>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixString.stringLength">
+            <summary>
+            The actual length of the string (not the capacity).
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixString.stringData">
+            <summary>
+            The string data buffer. Default capacity is 82 bytes.
+            Change the array dimension for custom string types in RSLogix.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.DataTypes.LogixString.Capacity">
+            <summary>
+            Gets the maximum capacity of this string in characters.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.DataTypes.LogixString.Value">
+            <summary>
+            Gets or sets the string value.
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.DataTypes.LogixString.#ctor">
+            <summary>
+            Creates a new empty LogixString with default capacity (82 bytes).
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.DataTypes.LogixString.#ctor(System.Int32)">
+            <summary>
+            Creates a new LogixString with a specified capacity.
+            </summary>
+            <param name="capacity">The maximum string length in bytes.</param>
+        </member>
+        <member name="M:Conduit.AsComm.DataTypes.LogixString.#ctor(System.String)">
+            <summary>
+            Creates a new LogixString initialized with a value.
+            </summary>
+            <param name="value">The initial string value.</param>
+        </member>
+        <member name="M:Conduit.AsComm.DataTypes.LogixString.ToString">
+            <summary>
+            Returns the string value of this LOGIX_STRING.
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.DataTypes.LogixString.SetString(System.String)">
+            <summary>
+            Sets the string value.
+            </summary>
+            <param name="value">The string value to set.</param>
+            <exception cref="T:System.ArgumentOutOfRangeException">
+            Thrown when the string length exceeds the buffer capacity.
+            </exception>
+        </member>
+        <member name="M:Conduit.AsComm.DataTypes.LogixString.op_Implicit(Conduit.AsComm.DataTypes.LogixString)~System.String">
+            <summary>
+            Implicit conversion from LogixString to string.
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.DataTypes.LogixString.op_Implicit(System.String)~Conduit.AsComm.DataTypes.LogixString">
+            <summary>
+            Implicit conversion from string to LogixString.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.LogixString`1">
+            <summary>
+            Represents a custom-length Logix STRING type.
+            Use this for STRING types with non-standard capacity defined in RSLogix.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixString`1.stringLength">
+            <summary>
+            The actual length of the string.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.DataTypes.LogixString`1.stringData">
+            <summary>
+            The string data buffer.
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.DataTypes.LogixString`1.#ctor">
+            <summary>
+            Creates a new LogixString with the capacity defined by TCapacity.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.DataTypes.LogixString`1.Value">
+            <summary>
+            Gets or sets the string value.
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.DataTypes.LogixString`1.ToString">
+            <inheritdoc />
+        </member>
+        <member name="M:Conduit.AsComm.DataTypes.LogixString`1.SetString(System.String)">
+            <summary>
+            Sets the string value.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.ILogixStringCapacity">
+            <summary>
+            Interface for defining custom string capacities.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.DataTypes.ILogixStringCapacity.Capacity">
+            <summary>
+            Gets the capacity in bytes.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.StringCapacity82">
+            <summary>
+            Standard 82-byte string capacity.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.DataTypes.StringCapacity82.Capacity">
+            <summary>
+            Gets the capacity in bytes (82).
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.StringCapacity256">
+            <summary>
+            256-byte string capacity.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.DataTypes.StringCapacity256.Capacity">
+            <summary>
+            Gets the capacity in bytes (256).
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.DataTypes.StringCapacity512">
+            <summary>
+            512-byte string capacity.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.DataTypes.StringCapacity512.Capacity">
+            <summary>
+            Gets the capacity in bytes (512).
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.Events.AsCommEventContext">
+            <summary>
+            Event context implementation for AsComm (PLC) connections.
+            Provides read and write access to PLC tags during event handling.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Events.AsCommEventContext.EventName">
+            <inheritdoc/>
+        </member>
+        <member name="P:Conduit.AsComm.Events.AsCommEventContext.Timestamp">
+            <inheritdoc/>
+        </member>
+        <member name="P:Conduit.AsComm.Events.AsCommEventContext.CorrelationId">
+            <inheritdoc/>
+        </member>
+        <member name="P:Conduit.AsComm.Events.AsCommEventContext.ConnectionName">
+            <inheritdoc/>
+        </member>
+        <member name="P:Conduit.AsComm.Events.AsCommEventContext.Metadata">
+            <inheritdoc/>
+        </member>
+        <member name="M:Conduit.AsComm.Events.AsCommEventContext.#ctor(System.String,Conduit.AsComm.IAsCommConnection)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Conduit.AsComm.Events.AsCommEventContext"/> class.
+            </summary>
+            <param name="eventName">The name of the event.</param>
+            <param name="connection">The AsComm connection.</param>
+        </member>
+        <member name="M:Conduit.AsComm.Events.AsCommEventContext.SetMetadata(System.String,System.Object)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Conduit.AsComm.Events.AsCommEventContext.ReadTagAsync``1(System.String,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Conduit.AsComm.Events.AsCommEventContext.WriteTagAsync``1(System.String,``0,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Conduit.AsComm.Events.AsCommEventContext.ReadTagsAsync(System.Collections.Generic.IEnumerable{System.String},System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="T:Conduit.AsComm.Events.AsCommTagReader">
+            <summary>
+            Tag reader implementation for AsComm (PLC) connections.
+            Used by the EventMediator to read tags specified in [AsCommRead] attributes.
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.Events.AsCommTagReader.#ctor(Conduit.AsComm.IAsCommConnection)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Conduit.AsComm.Events.AsCommTagReader"/> class.
+            </summary>
+            <param name="connection">The AsComm connection to use for reading.</param>
+        </member>
+        <member name="M:Conduit.AsComm.Events.AsCommTagReader.ReadTagAsync(System.String,System.Type,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="T:Conduit.AsComm.IAsCommClientBuilder">
+            <summary>
+            Builder interface for configuring ASComm PLC connections.
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.IAsCommClientBuilder.WithConnectionName(System.String)">
+            <summary>
+            Sets the logical name for this connection.
+            Used to match handlers decorated with [AsCommSubscribe] to this connection.
+            </summary>
+            <param name="name">The connection name.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.AsComm.IAsCommClientBuilder.WithPlc(System.String,System.Int32,System.Int32)">
+            <summary>
+            Configures the PLC endpoint.
+            </summary>
+            <param name="ipAddress">The IP address of the PLC or ENET/ENBT module.</param>
+            <param name="cpuSlot">The slot number of the CPU. Default is 0.</param>
+            <param name="backplane">The backplane number. Default is 1.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.AsComm.IAsCommClientBuilder.WithDefaultPollingInterval(System.Int32)">
+            <summary>
+            Sets the default polling interval for tag subscriptions.
+            </summary>
+            <param name="intervalMs">Polling interval in milliseconds.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.AsComm.IAsCommClientBuilder.WithConnectionTimeout(System.Int32)">
+            <summary>
+            Configures connection timeout.
+            </summary>
+            <param name="timeoutSeconds">Timeout in seconds.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.AsComm.IAsCommClientBuilder.WithAutoReconnect(System.Boolean,System.Int32)">
+            <summary>
+            Configures automatic reconnection behavior.
+            </summary>
+            <param name="enabled">Whether to enable auto-reconnect.</param>
+            <param name="maxDelaySeconds">Maximum delay between reconnection attempts.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.AsComm.IAsCommClientBuilder.WithSerializer(Conduit.Core.Abstractions.IMessageSerializer)">
+            <summary>
+            Configures a custom message serializer for UDT handling.
+            </summary>
+            <param name="serializer">The serializer to use.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.AsComm.IAsCommClientBuilder.WithLoggerFactory(Microsoft.Extensions.Logging.ILoggerFactory)">
+            <summary>
+            Configures the logger factory for internal logging.
+            </summary>
+            <param name="loggerFactory">The logger factory to use.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.AsComm.IAsCommClientBuilder.WithHandlerActivator(Conduit.Core.Abstractions.IHandlerActivator)">
+            <summary>
+            Configures the handler activator for dependency injection.
+            </summary>
+            <param name="activator">The handler activator.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.AsComm.IAsCommClientBuilder.WithHandlersFromAssemblies(System.Reflection.Assembly[])">
+            <summary>
+            Discovers and registers message handlers from the specified assemblies.
+            Handlers must be decorated with [AsCommSubscribe] attribute.
+            </summary>
+            <param name="assemblies">The assemblies to scan for handlers.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.AsComm.IAsCommClientBuilder.WithHandlersFromEntryAssembly">
+            <summary>
+            Discovers and registers message handlers from the entry assembly.
+            </summary>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="M:Conduit.AsComm.IAsCommClientBuilder.WithOptions(Conduit.AsComm.Configuration.AsCommConnectionOptions)">
+            <summary>
+            Applies configuration from an options object.
+            </summary>
+            <param name="options">The connection options.</param>
+            <returns>The builder for chaining.</returns>
+        </member>
+        <member name="T:Conduit.AsComm.IAsCommConnection">
+            <summary>
+            Represents an active connection to a PLC via ASComm.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.IAsCommConnection.Publisher">
+            <summary>
+            Gets the ASComm-specific publisher for writing tags to the PLC.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.IAsCommConnection.IpAddress">
+            <summary>
+            Gets the IP address of the connected PLC.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.IAsCommConnection.RoutePath">
+            <summary>
+            Gets the route path to the PLC (IP,Backplane,Slot format).
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.IAsCommConnection.ReadTagAsync``1(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Reads a tag value from the PLC.
+            </summary>
+            <typeparam name="T">The expected type of the tag value.</typeparam>
+            <param name="tagName">The name of the tag to read.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>The tag value with metadata.</returns>
+        </member>
+        <member name="M:Conduit.AsComm.IAsCommConnection.ReadTagsAsync(System.Collections.Generic.IEnumerable{System.String},System.Threading.CancellationToken)">
+            <summary>
+            Reads multiple tag values from the PLC in a single operation.
+            </summary>
+            <param name="tagNames">The names of the tags to read.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>A dictionary of tag names to their values.</returns>
+        </member>
+        <member name="M:Conduit.AsComm.IAsCommConnection.ReadTagsAsync``1(System.Collections.Generic.IEnumerable{System.String},System.Threading.CancellationToken)">
+            <summary>
+            Reads multiple tag values of the same type from the PLC in a single operation.
+            This overload provides type-safety when all tags are known to be the same type.
+            </summary>
+            <typeparam name="T">The expected type of all tag values.</typeparam>
+            <param name="tagNames">The names of the tags to read.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>A dictionary of tag names to their strongly-typed values.</returns>
+        </member>
+        <member name="M:Conduit.AsComm.IAsCommConnection.WriteTagAsync``1(System.String,``0,System.Threading.CancellationToken)">
+            <summary>
+            Writes a value to a PLC tag.
+            </summary>
+            <typeparam name="T">The type of the value to write.</typeparam>
+            <param name="tagName">The name of the tag to write.</param>
+            <param name="value">The value to write.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+        </member>
+        <member name="M:Conduit.AsComm.IAsCommConnection.WriteTagsAsync(System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.Threading.CancellationToken)">
+            <summary>
+            Writes multiple tag values to the PLC in a single operation.
+            </summary>
+            <param name="tagValues">Dictionary of tag names to values.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+        </member>
+        <member name="M:Conduit.AsComm.IAsCommConnection.SubscribeAsync``1(System.String,System.Func{Conduit.AsComm.Messages.TagValue{``0},Conduit.AsComm.IAsCommMessageContext,System.Threading.CancellationToken,System.Threading.Tasks.Task},System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Dynamically subscribes to tag changes.
+            </summary>
+            <typeparam name="T">The expected type of the tag value.</typeparam>
+            <param name="tagName">The tag name to subscribe to.</param>
+            <param name="handler">The handler to invoke when the tag value changes.</param>
+            <param name="pollingIntervalMs">Polling interval in milliseconds.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>A disposable subscription that can be used to unsubscribe.</returns>
+        </member>
+        <member name="T:Conduit.AsComm.IAsCommPublisher">
+            <summary>
+            ASComm-specific publisher for writing tags to PLCs.
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.IAsCommPublisher.WriteTagAsync``1(System.String,``0,System.Threading.CancellationToken)">
+            <summary>
+            Writes a value to a PLC tag.
+            </summary>
+            <typeparam name="T">The type of the value.</typeparam>
+            <param name="tagName">The tag name (used as topic).</param>
+            <param name="value">The value to write.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+        </member>
+        <member name="M:Conduit.AsComm.IAsCommPublisher.WriteTagsAsync(System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.Threading.CancellationToken)">
+            <summary>
+            Writes multiple tags in a single operation.
+            </summary>
+            <param name="tagValues">Dictionary of tag names to values.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+        </member>
+        <member name="T:Conduit.AsComm.IAsCommMessageContext">
+            <summary>
+            Extended message context for ASComm with PLC-specific operations.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.IAsCommMessageContext.TagName">
+            <summary>
+            Gets the tag name that triggered this message.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.IAsCommMessageContext.Publisher">
+            <summary>
+            Gets the ASComm-specific publisher for writing back to the PLC.
+            </summary>
+        </member>
+        <member name="M:Conduit.AsComm.IAsCommMessageContext.WriteTagAsync``1(System.String,``0,System.Threading.CancellationToken)">
+            <summary>
+            Writes a value back to a PLC tag.
+            Convenience method that uses the connection's publisher.
+            </summary>
+            <typeparam name="T">The type of the value.</typeparam>
+            <param name="tagName">The tag name to write to.</param>
+            <param name="value">The value to write.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+        </member>
+        <member name="M:Conduit.AsComm.IAsCommMessageContext.ReadTagAsync``1(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Reads a value from a PLC tag.
+            </summary>
+            <typeparam name="T">The expected type of the value.</typeparam>
+            <param name="tagName">The tag name to read.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+        </member>
+        <member name="T:Conduit.AsComm.Internal.AsCommMessageContext">
+            <summary>
+            ASComm-specific message context implementation.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.Internal.TagSubscription">
+            <summary>
+            Represents a dynamic tag subscription that can be disposed to unsubscribe.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.Internal.TagHandler">
+            <summary>
+            Internal representation of a tag subscription handler.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.Internal.TagHandlerRegistration">
+            <summary>
+            Registration info for attribute-discovered handlers.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.Messages.TagValue`1">
+            <summary>
+            Represents a PLC tag value with metadata.
+            </summary>
+            <typeparam name="T">The type of the tag value.</typeparam>
+        </member>
+        <member name="P:Conduit.AsComm.Messages.TagValue`1.TagName">
+            <summary>
+            Gets or sets the tag name.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Messages.TagValue`1.Value">
+            <summary>
+            Gets or sets the current value of the tag.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Messages.TagValue`1.PreviousValue">
+            <summary>
+            Gets or sets the previous value of the tag (if available).
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Messages.TagValue`1.Timestamp">
+            <summary>
+            Gets or sets the timestamp when the value was read from the PLC.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Messages.TagValue`1.Quality">
+            <summary>
+            Gets or sets the quality of the tag value.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Messages.TagValue`1.IsInitialRead">
+            <summary>
+            Gets a value indicating whether this is the first read (no previous value).
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Messages.TagValue`1.HasChanged">
+            <summary>
+            Gets a value indicating whether the value has changed from the previous read.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.Messages.TagValueBase">
+            <summary>
+            Non-generic base class for tag values.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Messages.TagValueBase.TagName">
+            <summary>
+            Gets or sets the tag name.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Messages.TagValueBase.Timestamp">
+            <summary>
+            Gets or sets the timestamp when the value was read from the PLC.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Messages.TagValueBase.Quality">
+            <summary>
+            Gets or sets the quality of the tag value.
+            </summary>
+        </member>
+        <member name="P:Conduit.AsComm.Messages.TagValueBase.RawValue">
+            <summary>
+            Gets the value as an object.
+            </summary>
+        </member>
+        <member name="T:Conduit.AsComm.Messages.TagQuality">
+            <summary>
+            Quality indicator for tag values.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Messages.TagQuality.Good">
+            <summary>
+            Value is good and reliable.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Messages.TagQuality.Uncertain">
+            <summary>
+            Value quality is uncertain.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Messages.TagQuality.Bad">
+            <summary>
+            Value is bad or unavailable.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Messages.TagQuality.CommError">
+            <summary>
+            Communication error occurred.
+            </summary>
+        </member>
+        <member name="F:Conduit.AsComm.Messages.TagQuality.NotFound">
+            <summary>
+            Tag was not found in the PLC.
+            </summary>
+        </member>
+    </members>
+</doc>

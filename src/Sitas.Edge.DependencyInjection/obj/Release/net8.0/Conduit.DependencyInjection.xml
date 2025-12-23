@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Conduit.DependencyInjection</name>
+    </assembly>
+    <members>
+        <member name="T:Conduit.DependencyInjection.ConduitHostedService">
+            <summary>
+            Hosted service that manages the lifecycle of all Nexus connections.
+            Automatically connects on startup and disconnects on shutdown.
+            </summary>
+        </member>
+        <member name="T:Conduit.DependencyInjection.ServiceCollectionExtensions">
+            <summary>
+            Extension methods for configuring Nexus Service Bus with dependency injection.
+            </summary>
+        </member>
+        <member name="M:Conduit.DependencyInjection.ServiceCollectionExtensions.AddConduit(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Action{Conduit.Core.ConduitBuilder})">
+            <summary>
+            Adds Nexus Service Bus to the service collection using the fluent builder API.
+            </summary>
+            <example>
+            services.AddConduit(nexus => nexus
+                .AddMqttConnection(mqtt => mqtt
+                    .WithBroker("localhost", 1883)
+                    .WithHandlersFromEntryAssembly()));
+            </example>
+        </member>
+        <member name="M:Conduit.DependencyInjection.ServiceCollectionExtensions.AddConduit(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Action{Conduit.Core.ConduitBuilder},System.Reflection.Assembly[])">
+            <summary>
+            Adds Nexus Service Bus to the service collection with handler discovery from specified assemblies.
+            </summary>
+        </member>
+        <member name="M:Conduit.DependencyInjection.ServiceCollectionExtensions.AddConduit(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Func{System.Type,System.Object},System.Action{Conduit.Core.ConduitBuilder})">
+            <summary>
+            Adds Nexus Service Bus with a custom activator for any DI container.
+            </summary>
+            <example>
+            // Autofac
+            services.AddConduit(
+                type => container.Resolve(type),
+                nexus => nexus.AddMqttConnection(mqtt => mqtt.WithBroker("localhost")));
+            </example>
+        </member>
+    </members>
+</doc>
