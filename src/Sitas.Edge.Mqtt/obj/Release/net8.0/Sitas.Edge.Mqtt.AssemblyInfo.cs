@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyDescriptionAttribute(("MQTT implementation for Sitas.Edge with attribute-based topic subscription discov" +
     "ery."))]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8750089391a537b0fc6af9fd5523a5f75c462bf2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0602d5ea8a350acce6fef70a53cf1839440e5318")]
 [assembly: System.Reflection.AssemblyProductAttribute("Sitas.Edge.Mqtt")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Sitas.Edge.Mqtt")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

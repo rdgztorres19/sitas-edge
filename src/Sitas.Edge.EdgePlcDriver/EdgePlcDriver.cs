@@ -435,7 +435,7 @@ internal sealed class EdgePlcDriver : IEdgePlcDriver
         return results;
     }
 
-    public async Task<IReadOnlyDictionary<string, T>> ReadTagsAsync<T>(
+    public async Task<IReadOnlyDictionary<string, TagValue<T>>> ReadTagsAsync<T>(
         IEnumerable<string> tagNames,
         CancellationToken cancellationToken = default)
     {
@@ -445,11 +445,11 @@ internal sealed class EdgePlcDriver : IEdgePlcDriver
         var tagNamesList = tagNames.ToList();
         if (tagNamesList.Count == 0)
         {
-            return new Dictionary<string, T>();
+            return new Dictionary<string, TagValue<T>>();
         }
 
 
-        var results = new Dictionary<string, T>();
+        var results = new Dictionary<string, TagValue<T>>();
 
         try
         {
@@ -473,7 +473,7 @@ internal sealed class EdgePlcDriver : IEdgePlcDriver
                 var readTasks = tempItems.Values.Select(item => item.ReadAsync()).ToList();
                 await Task.WhenAll(readTasks).ConfigureAwait(false);
 
-                // Collect values from all items with type conversion
+                // Collect values from all items with type conversion and create TagValue<T>
                 foreach (var tagName in tagNamesList)
                 {
                     if (tempItems.TryGetValue(tagName, out var item))
@@ -501,7 +501,23 @@ internal sealed class EdgePlcDriver : IEdgePlcDriver
                             }
                         }
 
-                        results[tagName] = value;
+                        // Create TagValue<T> with metadata
+                        var tagValue = new TagValue<T>
+                        {
+                            TagName = tagName,
+                            Value = value,
+                            Timestamp = DateTimeOffset.UtcNow,
+                            Quality = quality
+                        };
+
+                        // Track previous value
+                        if (_lastTagValues.TryGetValue(tagName, out var lastValue) && lastValue is T typedLastValue)
+                        {
+                            tagValue.PreviousValue = typedLastValue;
+                        }
+
+                        _lastTagValues[tagName] = value;
+                        results[tagName] = tagValue;
                         
                         if (quality != TagQuality.Good)
                         {
@@ -535,12 +551,18 @@ internal sealed class EdgePlcDriver : IEdgePlcDriver
                 try
                 {
                     var tagValue = await ReadTagAsync<T>(tagName, cancellationToken).ConfigureAwait(false);
-                    results[tagName] = tagValue.Value;
+                    results[tagName] = tagValue;
                 }
                 catch (Exception fallbackEx)
                 {
                     _logger.LogWarning(fallbackEx, "Failed fallback read for tag '{TagName}'", tagName);
-                    results[tagName] = default!;
+                    results[tagName] = new TagValue<T>
+                    {
+                        TagName = tagName,
+                        Value = default!,
+                        Quality = TagQuality.CommError,
+                        Timestamp = DateTimeOffset.UtcNow
+                    };
                 }
             }
         }

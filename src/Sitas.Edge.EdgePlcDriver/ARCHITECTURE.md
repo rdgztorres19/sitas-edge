@@ -1007,8 +1007,9 @@ ReadTagsAsync(["Tag1", "Tag2", "Tag3"])
 
 Similar to `ReadTagsAsync()` but:
 - Performs type conversion to `T` for each tag
-- Returns `IReadOnlyDictionary<string, T>`
+- Returns `IReadOnlyDictionary<string, TagValue<T>>` - includes metadata (Quality, Timestamp, PreviousValue, etc.)
 - Handles UDTs, arrays, and primitives using the same conversion logic as `ReadTagAsync<T>`
+- Creates `TagValue<T>` objects for each tag with full metadata, consistent with `ReadTagAsync<T>`
 
 ### WriteTagAsync<T> - Single Tag Write
 

@@ -511,7 +511,7 @@ if (result.Quality == TagQuality.Good)
 Reads multiple tags of the same type in a single operation (type-safe).
 
 ```csharp
-Task<IReadOnlyDictionary<string, T>> ReadTagsAsync<T>(
+Task<IReadOnlyDictionary<string, TagValue<T>>> ReadTagsAsync<T>(
     IEnumerable<string> tagNames,                            // Collection of tag names to read
     CancellationToken cancellationToken = default)           // Optional cancellation token
 ```
@@ -521,7 +521,7 @@ Task<IReadOnlyDictionary<string, T>> ReadTagsAsync<T>(
 - `cancellationToken` (`CancellationToken`): Optional token to cancel the operation
 
 **Output:**
-- Returns `Task<IReadOnlyDictionary<string, T>>` - Dictionary mapping tag names to their values
+- Returns `Task<IReadOnlyDictionary<string, TagValue<T>>>` - Dictionary mapping tag names to their TagValue with metadata (Quality, Timestamp, PreviousValue, etc.)
 
 **Example:**
 ```csharp
@@ -531,10 +531,14 @@ var results = await connection.ReadTagsAsync<int>(new[]
     "Tag2",
     "Tag3"
 });
-// Returns Dictionary<string, int> - no casting needed
-foreach (var (tagName, value) in results)
+// Returns Dictionary<string, TagValue<int>> - includes metadata
+foreach (var (tagName, tagValue) in results)
 {
-    Console.WriteLine($"{tagName}: {value}");
+    Console.WriteLine($"{tagName}: {tagValue.Value} (Quality: {tagValue.Quality}, Timestamp: {tagValue.Timestamp})");
+    if (tagValue.PreviousValue.HasValue)
+    {
+        Console.WriteLine($"  Previous: {tagValue.PreviousValue.Value}");
+    }
 }
 ```
 
@@ -1043,16 +1047,16 @@ Console.WriteLine($"Changed: {temperature.HasChanged}");
 await driver.WriteTagAsync("Setpoint_Temperature", 75.5f);
 
 // 5. Read multiple tags (type-safe)
-// Method: Task<IReadOnlyDictionary<string, T>> ReadTagsAsync<T>(IEnumerable<string> tagNames, CancellationToken ct = default)
-// Returns: Dictionary<string, int> - no casting needed
+// Method: Task<IReadOnlyDictionary<string, TagValue<T>>> ReadTagsAsync<T>(IEnumerable<string> tagNames, CancellationToken ct = default)
+// Returns: Dictionary<string, TagValue<int>> - includes metadata (Quality, Timestamp, etc.)
 var siteNumbers = await driver.ReadTagsAsync<int>(new[]
 {
     "ngpSampleCurrent.pallets[0].cavities[0].siteNumber",
     "ngpSampleCurrent.pallets[0].cavities[1].siteNumber"
 });
-foreach (var (tagName, value) in siteNumbers)
+foreach (var (tagName, tagValue) in siteNumbers)
 {
-    Console.WriteLine($"{tagName}: {value}");
+    Console.WriteLine($"{tagName}: {tagValue.Value} (Quality: {tagValue.Quality})");
 }
 
 // 6. Write to nested paths

@@ -16,7 +16,7 @@ using System.Reflection;
     "h attribute-based tag subscription discovery. Provides clean abstraction layer f" +
     "or industrial edge computing scenarios."))]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8750089391a537b0fc6af9fd5523a5f75c462bf2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0602d5ea8a350acce6fef70a53cf1839440e5318")]
 [assembly: System.Reflection.AssemblyProductAttribute("Sitas.Edge.EdgePlcDriver")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Sitas.Edge.EdgePlcDriver")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

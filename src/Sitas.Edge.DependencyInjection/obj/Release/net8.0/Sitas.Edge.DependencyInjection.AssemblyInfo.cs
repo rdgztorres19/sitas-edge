@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyDescriptionAttribute(("Dependency injection extensions for Sitas.Edge. Provides seamless integration wit" +
     "h Microsoft.Extensions.DependencyInjection."))]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8750089391a537b0fc6af9fd5523a5f75c462bf2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0602d5ea8a350acce6fef70a53cf1839440e5318")]
 [assembly: System.Reflection.AssemblyProductAttribute("Sitas.Edge.DependencyInjection")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Sitas.Edge.DependencyInjection")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -51,8 +51,8 @@ public interface IEdgePlcDriver : IServiceBusConnection
     /// <typeparam name="T">The expected type of all tag values.</typeparam>
     /// <param name="tagNames">The names of the tags to read.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
-    /// <returns>A dictionary of tag names to their strongly-typed values.</returns>
-    Task<IReadOnlyDictionary<string, T>> ReadTagsAsync<T>(
+    /// <returns>A dictionary of tag names to their TagValue with metadata (Quality, Timestamp, etc.).</returns>
+    Task<IReadOnlyDictionary<string, TagValue<T>>> ReadTagsAsync<T>(
         IEnumerable<string> tagNames,
         CancellationToken cancellationToken = default);
 
