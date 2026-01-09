@@ -427,6 +427,7 @@ Task<IAsyncDisposable> SubscribeAsync<T>(
     string tagName,
     Func<TagValue<T>, IEdgePlcDriverMessageContext, CancellationToken, Task> handler,
     int pollingIntervalMs = 100,
+    TagSubscriptionMode mode = TagSubscriptionMode.Polling,
     CancellationToken cancellationToken = default)
 ```
 
@@ -436,14 +437,16 @@ Task<IAsyncDisposable> SubscribeAsync<T>(
   - `TagValue<T>`: The tag value with metadata (Value, PreviousValue, Quality, Timestamp, etc.)
   - `IEdgePlcDriverMessageContext`: Context with TagName, Publisher, WriteTagAsync, ReadTagAsync methods
   - `CancellationToken`: Token to cancel the operation
-- `pollingIntervalMs` (`int`): Polling interval in milliseconds (default: 100)
+- `pollingIntervalMs` (`int`): Polling interval in milliseconds (default: 100, only used for Polling mode)
+- `mode` (`TagSubscriptionMode`): Subscription mode - `Polling` (default) or `Unsolicited`
 - `cancellationToken` (`CancellationToken`): Optional token to cancel the subscription setup
 
 **Returns:** `Task<IAsyncDisposable>` - Disposable subscription for unsubscribing
 
-**Example:**
+**Example (Polling mode):**
 ```csharp
 using Sitas.Edge.EdgePlcDriver;
+using Sitas.Edge.EdgePlcDriver.Attributes;
 
 var subscription = await connection.SubscribeAsync<int>(
     "Counter_Production",
@@ -458,11 +461,71 @@ var subscription = await connection.SubscribeAsync<int>(
             await context.WriteTagAsync("Counter_Production", 0, ct);
         }
     },
-    pollingIntervalMs: 500);
+    pollingIntervalMs: 500,
+    mode: TagSubscriptionMode.Polling);
 
 // Unsubscribe when done
 await subscription.DisposeAsync();
 ```
+
+**Example (Unsolicited mode):**
+```csharp
+using Sitas.Edge.EdgePlcDriver;
+using Sitas.Edge.EdgePlcDriver.Attributes;
+
+var subscription = await connection.SubscribeAsync<int>(
+    "Counter_Production",
+    async (tagValue, context, ct) =>
+    {
+        Console.WriteLine($"Count: {tagValue.Value} (pushed from PLC)");
+    },
+    mode: TagSubscriptionMode.Unsolicited);
+
+// Unsubscribe when done
+await subscription.DisposeAsync();
+```
+
+### SubscribeUnsolicitedAsync<T>
+
+Subscribe to tag changes using unsolicited messages (PLC push). The PLC must be configured to send unsolicited messages using MSG instructions.
+
+**Signature:**
+```csharp
+Task<IAsyncDisposable> SubscribeUnsolicitedAsync<T>(
+    string tagName,
+    Func<TagValue<T>, IEdgePlcDriverMessageContext, CancellationToken, Task> handler,
+    CancellationToken cancellationToken = default)
+```
+
+**Parameters:**
+- `tagName` (`string`): Tag name to subscribe to (must match the tag name configured in PLC MSG instruction)
+- `handler` (`Func<TagValue<T>, IEdgePlcDriverMessageContext, CancellationToken, Task>`): Handler function invoked when PLC pushes a value change
+- `cancellationToken` (`CancellationToken`): Optional token to cancel the subscription setup
+
+**Returns:** `Task<IAsyncDisposable>` - Disposable subscription for unsubscribing
+
+**Example:**
+```csharp
+using Sitas.Edge.EdgePlcDriver;
+
+var subscription = await connection.SubscribeUnsolicitedAsync<int>(
+    "Measurement_Result",
+    async (tagValue, context, ct) =>
+    {
+        Console.WriteLine($"Measurement received: {tagValue.Value}");
+        Console.WriteLine($"Timestamp: {tagValue.Timestamp}");
+    });
+
+// Unsubscribe when done
+await subscription.DisposeAsync();
+```
+
+**Important Notes:**
+- **PLC Configuration Required:** The PLC must be configured with a MSG instruction to send unsolicited messages to your application's IP address
+- **Lower Latency:** Unsolicited messages provide lower latency than polling as the PLC pushes changes immediately
+- **PLC Overhead:** Unsolicited messages increase PLC CPU overhead compared to polling
+- **Tag Name Matching:** The `tagName` parameter must exactly match the tag name configured in the PLC's MSG instruction
+- **Port Management:** The unsolicited message port is automatically opened when the first subscription is created and closed when the last subscription is disposed
 
 ### IEdgePlcDriverMessageContext
 
@@ -572,9 +635,9 @@ public class SiteNumberHandler : IMessageSubscriptionHandler<TagValue<int>>
 |-----------|------|---------|-------------|
 | `connectionName` | `string` | Required | Name of the PLC connection (must match builder configuration) |
 | `tagName` | `string` | Required | PLC tag name to subscribe to |
-| `pollingIntervalMs` | `int` | 0 (uses default) | Polling interval in milliseconds |
-| `OnChangeOnly` | `bool` | `true` | If `true`, handler only fires when value changes. If `false`, fires on every poll |
-| `mode` | `TagSubscriptionMode` | `Polling` | Subscription mode: `Polling` (default) or `Unsolicited` (fast polling) |
+| `pollingIntervalMs` | `int` | 0 (uses default) | Polling interval in milliseconds (only used for Polling mode) |
+| `OnChangeOnly` | `bool` | `true` | If `true`, handler only fires when value changes. If `false`, fires on every poll (only used for Polling mode) |
+| `mode` | `TagSubscriptionMode` | `Polling` | Subscription mode: `Polling` (default) or `Unsolicited` (PLC push messages) |
 
 **OnChangeOnly Examples:**
 ```csharp
@@ -584,6 +647,26 @@ public class SiteNumberHandler : IMessageSubscriptionHandler<TagValue<int>>
 // Fires on every poll cycle (even if value unchanged)
 [EdgePlcDriverSubscribe("plc1", "Sensor_Temperature", OnChangeOnly = false)]
 ```
+
+**Unsolicited Mode Example:**
+```csharp
+// Subscribe using unsolicited messages (PLC push)
+// Requires PLC to be configured with MSG instruction
+[EdgePlcDriverSubscribe("plc1", "Measurement_Result", mode: TagSubscriptionMode.Unsolicited)]
+public class MeasurementHandler : IMessageSubscriptionHandler<TagValue<int>>
+{
+    public Task HandleAsync(
+        TagValue<int> message,
+        IMessageContext context,
+        CancellationToken ct)
+    {
+        Console.WriteLine($"Measurement received: {message.Value} (pushed from PLC)");
+        return Task.CompletedTask;
+    }
+}
+```
+
+**Note:** When using `TagSubscriptionMode.Unsolicited`, the PLC must be configured to send unsolicited messages using MSG instructions. The `pollingIntervalMs` and `OnChangeOnly` parameters are ignored for unsolicited mode.
 
 ### DisableHandler Attribute
 
@@ -1330,6 +1413,7 @@ Edge PLC Driver supports two subscription modes:
 - Lower PLC CPU overhead
 - Suitable for most scenarios
 - Default mode
+- No PLC configuration required
 
 ```csharp
 [EdgePlcDriverSubscribe("plc1", "Sensor_Temperature", 
@@ -1341,21 +1425,33 @@ public class TemperatureHandler : IMessageSubscriptionHandler<TagValue<float>>
 }
 ```
 
-**Unsolicited Mode (Fast Polling)**
-- Very fast polling (10ms) for near real-time response
-- Lower latency (10ms vs 100-1000ms typical polling)
-- Higher PLC CPU overhead
-- Use selectively for critical tags only
+**Unsolicited Mode (PLC Push Messages)**
+- PLC pushes value changes immediately (true unsolicited messages)
+- Lowest latency - changes are received as soon as PLC sends them
+- Higher PLC CPU overhead (PLC must execute MSG instructions)
+- Requires PLC configuration (MSG instruction must be set up in PLC program)
+- Use selectively for critical tags that need immediate notification
+- Tag name must match exactly the tag configured in PLC MSG instruction
 
 ```csharp
-[EdgePlcDriverSubscribe("plc1", "Emergency_Stop", 
-    pollingIntervalMs: 10,
+[EdgePlcDriverSubscribe("plc1", "Measurement_Result", 
     mode: TagSubscriptionMode.Unsolicited)]
-public class EmergencyStopHandler : IMessageSubscriptionHandler<TagValue<bool>>
+public class MeasurementHandler : IMessageSubscriptionHandler<TagValue<int>>
 {
-    // ...
+    // Handler receives messages pushed from PLC
+    // No polling interval needed - PLC controls when messages are sent
 }
 ```
+
+**Comparison:**
+
+| Feature | Polling Mode | Unsolicited Mode |
+|---------|-------------|------------------|
+| Latency | 100-1000ms (depends on interval) | Immediate (as PLC sends) |
+| PLC CPU Overhead | Low | Higher (MSG instruction execution) |
+| PLC Configuration | None required | MSG instruction required |
+| Network Traffic | Regular reads at interval | Only when value changes |
+| Use Case | Most scenarios | Critical, time-sensitive data |
 
 ### Supported PLC Families
 

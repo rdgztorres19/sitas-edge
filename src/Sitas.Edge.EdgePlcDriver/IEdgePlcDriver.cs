@@ -75,18 +75,38 @@ public interface IEdgePlcDriver : IServiceBusConnection
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Dynamically subscribes to tag changes.
+    /// Dynamically subscribes to tag changes using polling or unsolicited messages.
     /// </summary>
     /// <typeparam name="T">The expected type of the tag value.</typeparam>
     /// <param name="tagName">The tag name to subscribe to.</param>
     /// <param name="handler">The handler to invoke when the tag value changes.</param>
-    /// <param name="pollingIntervalMs">Polling interval in milliseconds.</param>
+    /// <param name="pollingIntervalMs">Polling interval in milliseconds (only used for Polling mode).</param>
+    /// <param name="mode">Subscription mode: Polling (default) or Unsolicited.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A disposable subscription that can be used to unsubscribe.</returns>
     Task<IAsyncDisposable> SubscribeAsync<T>(
         string tagName,
         Func<TagValue<T>, IEdgePlcDriverMessageContext, CancellationToken, Task> handler,
         int pollingIntervalMs = 100,
+        Attributes.TagSubscriptionMode mode = Attributes.TagSubscriptionMode.Polling,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Subscribes to tag changes using unsolicited messages (PLC push).
+    /// The PLC must be configured to send unsolicited messages using MSG instructions.
+    /// </summary>
+    /// <typeparam name="T">The expected type of the tag value.</typeparam>
+    /// <param name="tagName">The tag name to subscribe to.</param>
+    /// <param name="handler">The handler to invoke when the PLC pushes a value change.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A disposable subscription that can be used to unsubscribe.</returns>
+    /// <remarks>
+    /// Unsolicited messages provide lower latency than polling as the PLC pushes changes immediately.
+    /// However, this requires configuration on the PLC side (MSG instructions) and increases PLC overhead.
+    /// </remarks>
+    Task<IAsyncDisposable> SubscribeUnsolicitedAsync<T>(
+        string tagName,
+        Func<TagValue<T>, IEdgePlcDriverMessageContext, CancellationToken, Task> handler,
         CancellationToken cancellationToken = default);
 }
 

@@ -43,8 +43,13 @@ internal sealed class EdgePlcDriver : IEdgePlcDriver
     private ABLogix.Net.Channel? _channel;
     private ABLogix.Device? _device;
     private ABLogix.Group? _pollingGroup;
-    private ABLogix.Group? _unsolicitedGroup;
+    private ABLogix.Group? _unsolicitedGroup; // Fast polling group (10ms) - NOT true unsolicited
     private ABLogix.Group? _writeGroup; // Group separado para escrituras (Active = false, no hace polling)
+
+    // Unsolicited messages infrastructure (true push messages from PLC)
+    private readonly object _unsolLock = new();
+    private ABLogix.Net.UnsolicitedMessage? _unsolicited;
+    private readonly List<IUnsolicitedSubscriptionInternal> _unsolicitedSubscriptions = new();
 
     private ConnectionState _state = ConnectionState.Disconnected;
     private bool _disposed;
@@ -240,6 +245,19 @@ internal sealed class EdgePlcDriver : IEdgePlcDriver
             item.DataChanged -= Item_DataChanged;
         }
         _tagItems.Clear();
+
+        // Close unsolicited message port if open
+        lock (_unsolLock)
+        {
+            if (_unsolicited != null)
+            {
+                _unsolicited.WriteReceived -= OnUnsolicitedWriteReceived;
+                _unsolicited.Error -= OnUnsolicitedError;
+                _unsolicited.ClosePort();
+                _unsolicited = null;
+            }
+            _unsolicitedSubscriptions.Clear();
+        }
 
         // Dispose channel (this closes all connections and threads)
         _channel?.Dispose();
@@ -586,15 +604,180 @@ internal sealed class EdgePlcDriver : IEdgePlcDriver
         }
     }
 
+    #region Unsolicited Messages Infrastructure
+
+    /// <summary>
+    /// Internal interface for unsolicited message subscriptions.
+    /// </summary>
+    private interface IUnsolicitedSubscriptionInternal : IAsyncDisposable
+    {
+        string TagAddress { get; }
+        Task HandleAsync(ABLogix.Net.UnsolicitedMessageReceivedEventArgs e, CancellationToken ct);
+        void ForwardError(Exception ex);
+    }
+
+    /// <summary>
+    /// Internal subscription for unsolicited messages from the PLC.
+    /// </summary>
+    private sealed class UnsolicitedSubscription<T> : IUnsolicitedSubscriptionInternal
+    {
+        private readonly EdgePlcDriver _owner;
+        private readonly string _tagName;
+        private readonly Func<TagValue<T>, IEdgePlcDriverMessageContext, CancellationToken, Task> _handler;
+        private readonly ILogger<EdgePlcDriver> _logger;
+
+        public string TagAddress { get; }
+
+        public UnsolicitedSubscription(
+            EdgePlcDriver owner,
+            string tagName,
+            Func<TagValue<T>, IEdgePlcDriverMessageContext, CancellationToken, Task> handler,
+            ILogger<EdgePlcDriver> logger)
+        {
+            _owner = owner;
+            _tagName = tagName;
+            TagAddress = tagName;
+            _handler = handler;
+            _logger = logger;
+        }
+
+        public async Task HandleAsync(ABLogix.Net.UnsolicitedMessageReceivedEventArgs e, CancellationToken ct)
+        {
+            try
+            {
+                // Get values from unsolicited message
+                var valuesObj = e.GetValues();
+                if (valuesObj is not IList list || list.Count == 0)
+                {
+                    _logger.LogWarning("Unsolicited message for tag '{TagName}' has no values", _tagName);
+                    return;
+                }
+
+                T value = default!;
+                object? rawValue = null;
+
+                // Check if T is a structured type (UDT)
+                if (EdgePlcDriver.IsStructuredType<T>())
+                {
+                    // For UDTs, try to use GetStructuredValues if available
+                    // Otherwise, construct manually from values
+                    value = Activator.CreateInstance<T>();
+                    if (value is not null)
+                    {
+                        // Try to populate using reflection or manual mapping
+                        // For now, we'll use a simple approach similar to AscommLogixDriver
+                        // This may need adjustment based on actual UDT structure
+                        if (list.Count >= 1)
+                        {
+                            // For structured types, we may need to map fields manually
+                            // This is a simplified version - may need enhancement for complex UDTs
+                            rawValue = value;
+                        }
+                    }
+                }
+                else if (typeof(T).IsArray)
+                {
+                    // Handle array types
+                    var elementType = typeof(T).GetElementType();
+                    if (elementType is not null)
+                    {
+                        var array = Array.CreateInstance(elementType, list.Count);
+                        for (int i = 0; i < list.Count; i++)
+                        {
+                            try
+                            {
+                                var convertedValue = Convert.ChangeType(list[i], elementType);
+                                array.SetValue(convertedValue, i);
+                            }
+                            catch
+                            {
+                                array.SetValue(list[i], i);
+                            }
+                        }
+                        value = (T)(object)array;
+                        rawValue = array;
+                    }
+                }
+                else
+                {
+                    // Primitive types - use first value
+                    var rawVal = list[0];
+                    try
+                    {
+                        value = (T)Convert.ChangeType(rawVal, typeof(T));
+                        rawValue = rawVal;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to convert unsolicited value to type {Type} for tag '{TagName}'", typeof(T).Name, _tagName);
+                        return;
+                    }
+                }
+
+                // Create TagValue<T>
+                var tagValue = new TagValue<T>
+                {
+                    TagName = _tagName,
+                    Value = value,
+                    Timestamp = DateTimeOffset.UtcNow,
+                    Quality = TagQuality.Good // Unsolicited messages are always good quality
+                };
+
+                // Track previous value
+                if (_owner._lastTagValues.TryGetValue(_tagName, out var lastValue) && lastValue is T typedLastValue)
+                {
+                    tagValue.PreviousValue = typedLastValue;
+                }
+                _owner._lastTagValues[_tagName] = value;
+
+                // Create context
+                var rawPayload = rawValue is not null
+                    ? Encoding.UTF8.GetBytes(JsonSerializer.Serialize(rawValue))
+                    : ReadOnlyMemory<byte>.Empty;
+
+                var context = new EdgePlcDriverMessageContext(_tagName, rawPayload, _owner._publisher, _owner);
+
+                // Invoke handler
+                await _handler(tagValue, context, ct).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error handling unsolicited message for tag '{TagName}'", _tagName);
+                ForwardError(ex);
+            }
+        }
+
+        public void ForwardError(Exception ex)
+        {
+            _logger.LogError(ex, "Error in unsolicited subscription for tag '{TagName}'", _tagName);
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            _owner.RemoveUnsolicitedSubscription(this);
+            await Task.CompletedTask;
+        }
+    }
+
+    #endregion
+
     public Task<IAsyncDisposable> SubscribeAsync<T>(
         string tagName,
         Func<TagValue<T>, IEdgePlcDriverMessageContext, CancellationToken, Task> handler,
         int pollingIntervalMs = 100,
+        Attributes.TagSubscriptionMode mode = Attributes.TagSubscriptionMode.Polling,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(tagName);
         ArgumentNullException.ThrowIfNull(handler);
 
+        // If unsolicited mode, use unsolicited subscription
+        if (mode == Attributes.TagSubscriptionMode.Unsolicited)
+        {
+            return SubscribeUnsolicitedAsync<T>(tagName, handler, cancellationToken);
+        }
+
+        // Otherwise, use polling
         var effectiveInterval = pollingIntervalMs > 0 ? pollingIntervalMs : _options.DefaultPollingIntervalMs;
 
         _logger.LogInformation(
@@ -678,6 +861,132 @@ internal sealed class EdgePlcDriver : IEdgePlcDriver
         }
 
         return Task.FromResult<IAsyncDisposable>(new TagSubscription(tagName, UnsubscribeAsync));
+    }
+
+    public Task<IAsyncDisposable> SubscribeUnsolicitedAsync<T>(
+        string tagName,
+        Func<TagValue<T>, IEdgePlcDriverMessageContext, CancellationToken, Task> handler,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(tagName);
+        ArgumentNullException.ThrowIfNull(handler);
+
+        _logger.LogInformation(
+            "📡 Subscribing to tag '{TagName}' using unsolicited messages (PLC push)",
+            tagName);
+
+        lock (_unsolLock)
+        {
+            // Create UnsolicitedMessage if it doesn't exist
+            if (_unsolicited == null)
+            {
+                _unsolicited = new ABLogix.Net.UnsolicitedMessage
+                {
+                    Description = "EdgePlcDriver Unsolicited Server"
+                };
+
+                _unsolicited.WriteReceived += OnUnsolicitedWriteReceived;
+                _unsolicited.Error += OnUnsolicitedError;
+
+                // Open port to listen for unsolicited messages
+                // OpenPort() without parameters listens on all interfaces
+                _unsolicited.OpenPort();
+
+                _logger.LogInformation("✅ Unsolicited message port opened");
+            }
+
+            // Create subscription
+            var subscription = new UnsolicitedSubscription<T>(this, tagName, handler, _logger);
+            _unsolicitedSubscriptions.Add(subscription);
+
+            return Task.FromResult<IAsyncDisposable>(subscription);
+        }
+    }
+
+    private void OnUnsolicitedWriteReceived(object? sender, ABLogix.Net.UnsolicitedMessageReceivedEventArgs e)
+    {
+        List<IUnsolicitedSubscriptionInternal> targets;
+
+        lock (_unsolLock)
+        {
+            if (_unsolicitedSubscriptions.Count == 0)
+                return;
+
+            // Get tag name from PLC message
+            string tagNameFromPlc = e.HwTagName;
+
+            // Find subscriptions that match this tag
+            targets = _unsolicitedSubscriptions
+                .Where(s => string.Equals(s.TagAddress, tagNameFromPlc, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        if (targets.Count == 0)
+        {
+            _logger.LogDebug("No subscriptions found for unsolicited tag '{TagName}'", e.HwTagName);
+            return;
+        }
+
+        // Invoke handlers for matching subscriptions
+        foreach (var sub in targets)
+        {
+            try
+            {
+                // Use fire-and-forget with error handling
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await sub.HandleAsync(e, _disposeCts.Token).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error in unsolicited handler for tag '{TagName}'", e.HwTagName);
+                        sub.ForwardError(ex);
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error dispatching unsolicited message for tag '{TagName}'", e.HwTagName);
+                sub.ForwardError(ex);
+            }
+        }
+    }
+
+    private void OnUnsolicitedError(object? sender, ABLogix.Net.UnsolicitedMessageErrorEventArgs e)
+    {
+        var ex = new Exception($"Unsolicited message error from {e.IPSender} to {e.IPLocal}: {e.Message}");
+        _logger.LogError(ex, "Unsolicited message error");
+
+        List<IUnsolicitedSubscriptionInternal> subs;
+        lock (_unsolLock)
+        {
+            subs = _unsolicitedSubscriptions.ToList();
+        }
+
+        foreach (var sub in subs)
+        {
+            sub.ForwardError(ex);
+        }
+    }
+
+    private void RemoveUnsolicitedSubscription(IUnsolicitedSubscriptionInternal sub)
+    {
+        lock (_unsolLock)
+        {
+            _unsolicitedSubscriptions.Remove(sub);
+
+            // If no more subscriptions, close the port
+            if (_unsolicitedSubscriptions.Count == 0 && _unsolicited != null)
+            {
+                _unsolicited.WriteReceived -= OnUnsolicitedWriteReceived;
+                _unsolicited.Error -= OnUnsolicitedError;
+                _unsolicited.ClosePort();
+                _unsolicited = null;
+                _logger.LogInformation("✅ Unsolicited message port closed (no active subscriptions)");
+            }
+        }
     }
 
     private async Task WriteTagInternalAsync(string tagName, object value, CancellationToken cancellationToken)
@@ -772,7 +1081,7 @@ internal sealed class EdgePlcDriver : IEdgePlcDriver
         });
     }
 
-    private Task StartRegisteredHandlersAsync(CancellationToken cancellationToken)
+    private async Task StartRegisteredHandlersAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation(
             "📡 Starting {Count} registered tag handler(s) for connection '{ConnectionName}'",
@@ -780,43 +1089,75 @@ internal sealed class EdgePlcDriver : IEdgePlcDriver
             _options.ConnectionName);
 
         var hasPollingSubscriptions = false;
-        var hasUnsolicitedSubscriptions = false;
+        var hasFastPollingSubscriptions = false; // For _unsolicitedGroup (fast polling, not true unsolicited)
 
         foreach (var registration in _handlerRegistrations)
         {
-            // Create item for this subscription with appropriate mode
-            var item = GetOrCreateItem(registration.TagName, registration.Mode);
-
-            var tagHandler = new TagHandler
-            {
-                TagName = registration.TagName,
-                MessageType = registration.MessageType,
-                Handler = CreateAttributeHandlerDelegate(registration),
-                PollingIntervalMs = registration.PollingIntervalMs > 0
-                    ? registration.PollingIntervalMs
-                    : _options.DefaultPollingIntervalMs,
-                OnChangeOnly = registration.OnChangeOnly,
-                Deadband = registration.Deadband,
-                Mode = registration.Mode
-            };
-
-            _dynamicHandlers[registration.TagName] = tagHandler;
-
             if (registration.Mode == Attributes.TagSubscriptionMode.Unsolicited)
             {
-                hasUnsolicitedSubscriptions = true;
+                // True unsolicited messages - use SubscribeUnsolicitedAsync
+                // Get the inner type of TagValue<T>
+                var innerType = registration.MessageType.GetGenericArguments().FirstOrDefault() ?? typeof(object);
+                
+                // Create handler wrapper that invokes the attribute handler
+                var handlerFunc = CreateUnsolicitedHandlerFunc(registration, innerType);
+                
+                // Use reflection to call SubscribeUnsolicitedAsync<T> with the correct type
+                var subscribeMethod = typeof(EdgePlcDriver).GetMethod(nameof(SubscribeUnsolicitedAsync), 
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                var genericSubscribeMethod = subscribeMethod!.MakeGenericMethod(innerType);
+                
+                // Create typed handler from object handler
+                var typedHandler = CreateTypedHandlerFromObjectHandler(innerType, handlerFunc);
+                var subscribeTask = genericSubscribeMethod.Invoke(this, [registration.TagName, typedHandler, cancellationToken]) as Task<IAsyncDisposable>;
+                
+                if (subscribeTask is not null)
+                {
+                    await subscribeTask.ConfigureAwait(false);
+                    
+                    _logger.LogInformation(
+                        "📡 Subscribed to tag '{TagName}' using unsolicited messages (PLC push)",
+                        registration.TagName);
+                }
             }
             else
             {
-                hasPollingSubscriptions = true;
+                // Polling mode - use existing implementation
+                // Create item for this subscription
+                var item = GetOrCreateItem(registration.TagName, registration.Mode);
+
+                var tagHandler = new TagHandler
+                {
+                    TagName = registration.TagName,
+                    MessageType = registration.MessageType,
+                    Handler = CreateAttributeHandlerDelegate(registration),
+                    PollingIntervalMs = registration.PollingIntervalMs > 0
+                        ? registration.PollingIntervalMs
+                        : _options.DefaultPollingIntervalMs,
+                    OnChangeOnly = registration.OnChangeOnly,
+                    Deadband = registration.Deadband,
+                    Mode = registration.Mode
+                };
+
+                _dynamicHandlers[registration.TagName] = tagHandler;
+
+                if (registration.Mode == Attributes.TagSubscriptionMode.Polling)
+                {
+                    hasPollingSubscriptions = true;
+                }
+                else
+                {
+                    // This shouldn't happen with current enum, but handle it
+                    hasPollingSubscriptions = true;
+                }
+                
+                _logger.LogInformation(
+                    "📡 Subscribed to tag '{TagName}' | Mode: {Mode} | Interval: {Interval}ms | OnChangeOnly: {OnChange}",
+                    registration.TagName,
+                    registration.Mode,
+                    tagHandler.PollingIntervalMs,
+                    tagHandler.OnChangeOnly);
             }
-            
-            _logger.LogInformation(
-                "📡 Subscribed to tag '{TagName}' | Mode: {Mode} | Interval: {Interval}ms | OnChangeOnly: {OnChange}",
-                registration.TagName,
-                registration.Mode,
-                tagHandler.PollingIntervalMs,
-                tagHandler.OnChangeOnly);
         }
 
         // Activate polling group if there are polling subscriptions
@@ -827,19 +1168,91 @@ internal sealed class EdgePlcDriver : IEdgePlcDriver
             _logger.LogInformation("📡 Polling group activated with {Rate}ms update rate", _pollingGroup.UpdateRate);
         }
 
-        // Activate unsolicited group if there are unsolicited subscriptions
-        if (hasUnsolicitedSubscriptions && _unsolicitedGroup is not null)
+        // Note: _unsolicitedGroup is for fast polling (10ms), not true unsolicited messages
+        // True unsolicited messages use _unsolicited (UnsolicitedMessage object)
+    }
+
+    private Func<TagValue<object>, IEdgePlcDriverMessageContext, CancellationToken, Task> CreateUnsolicitedHandlerFunc(
+        TagHandlerRegistration registration, Type innerType)
+    {
+        return async (tagValueObj, context, ct) =>
         {
-            _unsolicitedGroup.Active = true;
-            _logger.LogInformation("📡 Unsolicited group activated (10ms update rate)");
-        }
+            try
+            {
+                using var scopedHandler = _handlerResolver.ResolveScoped(registration.HandlerType);
+                var handlerInstance = scopedHandler.Handler;
 
-        // Note: No need for manual timers. When group.Active = true, ASComm IoT handles
-        // automatic polling at the group's UpdateRate and fires DataChanged events.
-        // For OnChangeOnly=false handlers, they'll receive all DataChanged events.
-        // For OnChangeOnly=true handlers, the handler delegate filters unchanged values.
+                // Create TagValue<T> with the correct type
+                var tagValueType = typeof(TagValue<>).MakeGenericType(innerType);
+                var tagValue = Activator.CreateInstance(tagValueType);
+                
+                // Copy properties from the object TagValue to the typed TagValue
+                tagValueType.GetProperty("TagName")?.SetValue(tagValue, tagValueObj.TagName);
+                tagValueType.GetProperty("Value")?.SetValue(tagValue, tagValueObj.Value);
+                tagValueType.GetProperty("Timestamp")?.SetValue(tagValue, tagValueObj.Timestamp);
+                tagValueType.GetProperty("Quality")?.SetValue(tagValue, tagValueObj.Quality);
+                if (tagValueObj.PreviousValue.HasValue)
+                {
+                    tagValueType.GetProperty("PreviousValue")?.SetValue(tagValue, tagValueObj.PreviousValue.Value);
+                }
 
-        return Task.CompletedTask;
+                // Invoke HandleAsync
+                var method = registration.HandlerType.GetMethod("HandleAsync");
+                if (method is not null)
+                {
+                    var task = (Task?)method.Invoke(handlerInstance, [tagValue, context, ct]);
+                    if (task is not null)
+                    {
+                        await task.ConfigureAwait(false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error in unsolicited handler for tag '{TagName}'",
+                    registration.TagName);
+            }
+        };
+    }
+
+    private object CreateTypedHandlerFromObjectHandler(Type innerType, Func<TagValue<object>, IEdgePlcDriverMessageContext, CancellationToken, Task> handler)
+    {
+        // Create Func<TagValue<T>, IEdgePlcDriverMessageContext, CancellationToken, Task> using reflection
+        var funcType = typeof(Func<,,,>).MakeGenericType(
+            typeof(TagValue<>).MakeGenericType(innerType),
+            typeof(IEdgePlcDriverMessageContext),
+            typeof(CancellationToken),
+            typeof(Task));
+
+        // Create a delegate that converts TagValue<T> to TagValue<object> and calls the handler
+        var method = typeof(EdgePlcDriver).GetMethod(nameof(CreateTypedHandlerHelper), 
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        var genericMethod = method!.MakeGenericMethod(innerType);
+        return genericMethod.Invoke(null, [handler])!;
+    }
+
+    private static Func<TagValue<T>, IEdgePlcDriverMessageContext, CancellationToken, Task> CreateTypedHandlerHelper<T>(
+        Func<TagValue<object>, IEdgePlcDriverMessageContext, CancellationToken, Task> handler)
+    {
+        return async (tagValue, context, ct) =>
+        {
+            // Convert TagValue<T> to TagValue<object>
+            var tagValueObj = new TagValue<object>
+            {
+                TagName = tagValue.TagName,
+                Value = tagValue.Value,
+                Timestamp = tagValue.Timestamp,
+                Quality = tagValue.Quality
+            };
+            if (tagValue.PreviousValue.HasValue)
+            {
+                tagValueObj.PreviousValue = tagValue.PreviousValue.Value;
+            }
+
+            await handler(tagValueObj, context, ct).ConfigureAwait(false);
+        };
     }
 
 
@@ -1244,12 +1657,12 @@ internal sealed class EdgePlcDriver : IEdgePlcDriver
         return (T)(object)array;
     }
 
-    private static bool IsStructuredType<T>()
+    internal static bool IsStructuredType<T>()
     {
         return IsStructuredTypeRuntime(typeof(T));
     }
 
-    private static bool IsStructuredTypeRuntime(Type? type)
+    internal static bool IsStructuredTypeRuntime(Type? type)
     {
         if (type is null)
             return false;
